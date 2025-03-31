@@ -34,6 +34,15 @@ jobs:
           echo "Contents of htmlcov:"
           find htmlcov
 
+      - name: Generate HTML coverage report
+        run: |
+          make htmlcov
+
+      - name: Show what will be deployed
+        run: |
+          echo "Contents of htmlcov:"
+          find htmlcov
+
       - name: Deploy to GitHub Pages manually
         run: |
           git config --global user.name "github-actions"
