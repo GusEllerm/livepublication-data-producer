@@ -1,0 +1,31 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.sqlite3
+
+# === Virtual Environments ===
+.venv/
+env/
+venv/
+
+# === Editor and OS Files ===
+.DS_Store
+.vscode/
+.idea/
+
+# === Output Data ===
+tiles_*/
+*.npy
+*.tif
+*.png
+
+# === Secrets ===
+secrets.json
+
+# === Test Artifacts ===
+*.coverage
+.cache/
+htmlcov/

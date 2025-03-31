@@ -1,0 +1,5 @@
+sentinelhub
+rasterio
+matplotlib
+pytest
+opencv-python
