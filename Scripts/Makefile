@@ -6,3 +6,6 @@ run:
 
 view:
 	python test_geo.py
+
+coverage:
+	PYTHONPATH=. pytest --cov=utils --cov-report=term-missing --ignore=test_geo.py
