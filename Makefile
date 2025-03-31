@@ -19,3 +19,6 @@ view:
 
 coverage:
 	make -C Scripts coverage 
+
+htmlcov:
+	make -C Scripts htmlcov
