@@ -13,6 +13,8 @@ from profiles import rgb_snapshot_quickview, vegetation_monitoring_monthly, ndvi
 # === Load config profile ===
 profile = vegetation_monitoring_monthly
 
+
+# Test changes
 config = SHConfig()
 config.sh_client_id = secrets["sh_client_id"]
 config.sh_client_secret = secrets["sh_client_secret"]
