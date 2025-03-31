@@ -11,4 +11,4 @@ coverage:
 	PYTHONPATH=. pytest --cov=utils --cov-report=term-missing --ignore=test_geo.py
 
 htmlcov:
-	PYTHONPATH=. pytest --cov=utils --cov-report=html
+	PYTHONPATH=. pytest --cov=utils --cov-report=html --ignore=test_geo.py
