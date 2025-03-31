@@ -29,11 +29,6 @@ jobs:
         run: |
           make coverage
 
-      - name: Show what will be deployed
-        run: |
-          echo "Contents of htmlcov:"
-          find htmlcov
-
       - name: Generate HTML coverage report
         run: |
           make htmlcov
