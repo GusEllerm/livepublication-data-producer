@@ -1,12 +1,10 @@
 # 🌱 LivePublication Data Producer
 
-![Tests](https://github.com/GusEllerm/livepublication-data-producer/actions/workflows/test.yml/badge.svg)
+![Tests](https://github.com/GusEllerm/livepublication-data-producer/actions/workflows/test.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/Coverage-View_Report-blue)](https://gusellerm.github.io/livepublication-data-producer/)
 
 This repository contains the **Data Producer** (Layer 1) for a LivePublication instance. It automates satellite data acquisition and preparation from Copernicus Sentinel-2 imagery using the Sentinel Hub API.
 
 The output is designed to support dynamic scientific publications that integrate computation and visualization, particularly for monitoring vegetative health in regions like New Zealand.
-
----
 
 ## 📦 Features
 
