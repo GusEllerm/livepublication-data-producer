@@ -71,19 +71,12 @@ make test
 ```
 
 Tests include:
+
 - Band math (`NDVI`, `True Color`)
 - Tiling logic
 - Stitching and alignment
 - GeoTIFF saving + reloading
 
----
-
-## 🧠 LivePublication Context
-
-This layer feeds dynamic data into a LivePublication research container, enabling:
-- Continual updates based on new data
-- Custom figures and text in publication
-- Full reproducibility and transparent data flow
 
 ---
 
