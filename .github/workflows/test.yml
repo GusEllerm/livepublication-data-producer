@@ -52,6 +52,9 @@ jobs:
         run: |
           make htmlcov
 
+      - name: Debug HTML coverage output
+        run: ls -R htmlcov
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
