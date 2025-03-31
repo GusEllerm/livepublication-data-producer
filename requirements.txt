@@ -10,6 +10,8 @@ affine==2.4.0
     # via rasterio
 attrs==25.3.0
     # via rasterio
+build==1.2.2.post1
+    # via pip-tools
 certifi==2025.1.31
     # via
     #   pyproj
@@ -21,6 +23,7 @@ click==8.1.8
     # via
     #   click-plugins
     #   cligj
+    #   pip-tools
     #   rasterio
     #   sentinelhub
 click-plugins==1.1.1
@@ -29,6 +32,8 @@ cligj==0.7.2
     # via rasterio
 contourpy==1.3.1
     # via matplotlib
+coverage[toml]==7.8.0
+    # via pytest-cov
 cycler==0.12.1
     # via matplotlib
 dataclasses-json==0.6.7
@@ -64,6 +69,7 @@ opencv-python==4.11.0.86
     # via -r requirements.in
 packaging==24.2
     # via
+    #   build
     #   marshmallow
     #   matplotlib
     #   pytest
@@ -71,6 +77,8 @@ pillow==11.1.0
     # via
     #   matplotlib
     #   sentinelhub
+pip-tools==7.4.1
+    # via -r requirements.in
 pluggy==1.5.0
     # via pytest
 pyparsing==3.2.3
@@ -79,7 +87,15 @@ pyparsing==3.2.3
     #   rasterio
 pyproj==3.7.1
     # via sentinelhub
+pyproject-hooks==1.2.0
+    # via
+    #   build
+    #   pip-tools
 pytest==8.3.5
+    # via
+    #   -r requirements.in
+    #   pytest-cov
+pytest-cov==6.0.0
     # via -r requirements.in
 python-dateutil==2.9.0.post0
     # via
@@ -117,3 +133,9 @@ urllib3==2.3.0
     # via requests
 utm==0.8.1
     # via sentinelhub
+wheel==0.45.1
+    # via pip-tools
+
+# The following packages are considered to be unsafe in a requirements file:
+# pip
+# setuptools

@@ -3,3 +3,5 @@ rasterio
 matplotlib
 pytest
 opencv-python
+pytest-cov
+pip-tools
