@@ -55,18 +55,13 @@ jobs:
       - name: Debug HTML coverage output
         run: ls -R htmlcov
 
-      - name: Ensure gh-pages branch exists
+      - name: Debug HTML coverage output
+        run: ls -R htmlcov
+
+      - name: Show what will be deployed
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git fetch origin gh-pages || echo "gh-pages does not exist yet"
-          git checkout --orphan gh-pages || echo "already exists"
-          git reset --hard
-          touch .nojekyll
-          git add .nojekyll
-          git commit -m "Initialize gh-pages"
-          git push origin gh-pages || echo "already pushed"
-          git checkout ${GITHUB_REF#refs/heads/}
+          echo "Contents of htmlcov:"
+          find htmlcov
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
