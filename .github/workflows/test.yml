@@ -29,14 +29,28 @@ jobs:
         run: |
           make coverage
 
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.5.3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4.7.1
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
       - name: Generate HTML coverage report
         run: |
           make htmlcov
-
-      - name: Show what will be deployed
-        run: |
-          echo "Contents of htmlcov:"
-          find htmlcov
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
