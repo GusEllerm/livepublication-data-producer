@@ -1,8 +1,8 @@
 test:
-	PYTHONPATH=. pytest tests/
+	make -C Scripts test
 
 run:
-	python get_data.py
+	make -C Scripts run
 
-view:
-	python test_geo.py
+make view:
+	make -C Scripts view
