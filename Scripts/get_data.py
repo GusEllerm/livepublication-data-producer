@@ -1,19 +1,18 @@
 import os
-import numpy as np
 import json
+import numpy as np
 
 with open("secrets.json") as f:
     secrets = json.load(f)
 
 from rasterio.crs import CRS as RioCRS
 from sentinelhub import SHConfig, BBox, CRS, bbox_to_dimensions, SentinelHubCatalog, DataCollection, SentinelHubRequest, MimeType
-from utils import plot_image, generate_safe_tiles, download_safe_tiles, stitch_tiles, compute_ndvi, rasterize_true_color, save_geotiff, clean_output_dir
 from profiles import rgb_snapshot_quickview, vegetation_monitoring_monthly, ndvi_high_precision, evalscript_raw_bands, lilys_profile
+from utils import plot_image, generate_safe_tiles, download_safe_tiles, stitch_tiles, compute_ndvi, rasterize_true_color, save_geotiff, compute_stitched_bbox
 
 # === Load config profile ===
 profile = vegetation_monitoring_monthly
 
-# example change
 config = SHConfig()
 config.sh_client_id = secrets["sh_client_id"]
 config.sh_client_secret = secrets["sh_client_secret"]
@@ -22,7 +21,6 @@ config.sh_token_url = secrets["sh_token_url"]
 
 # === Output directory ===
 output_dir = f"./tiles_{profile.region.lower().replace(' ', '_')}"
-clean_output_dir(output_dir) # !!!!!!!!! removes files from output_dir !!!!!!!!!
 prefix = profile.region.lower().replace(' ', '_')
 os.makedirs(output_dir, exist_ok=True)
 
@@ -58,13 +56,7 @@ stitched_image = stitch_tiles(output_dir, tile_info)
 np.save(os.path.join(output_dir, "stitched_raw_bands.npy"), stitched_image)
 print(f"✅ Stitched raw band matrix saved: shape={stitched_image.shape}")
 
-all_bboxes = [bbox for _, bbox in tile_info]
-min_lon = min(b.min_x for b in all_bboxes)
-min_lat = min(b.min_y for b in all_bboxes)
-max_lon = max(b.max_x for b in all_bboxes)
-max_lat = max(b.max_y for b in all_bboxes)
-stitched_bbox = (min_lon, min_lat, max_lon, max_lat)
-from rasterio.crs import CRS as RioCRS
+stitched_bbox = compute_stitched_bbox(tile_info)
 stitched_crs = RioCRS.from_epsg(4326)
 
 # === Postprocessing ===

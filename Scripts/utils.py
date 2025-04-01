@@ -1,18 +1,20 @@
-"""
-Utilities used by example notebooks
-"""
-
 from __future__ import annotations
+import calendar
 
-from typing import Any
 
 import os
-import cv2  # OpenCV
+import cv2  
 import rasterio
-from rasterio.transform import from_bounds
-import matplotlib.pyplot as plt
-from sentinelhub import BBox, CRS, bbox_to_dimensions, SentinelHubRequest, DataCollection, MimeType
+import shutil
 import numpy as np
+import matplotlib.pyplot as plt
+
+from typing import Any
+from datetime import date
+from datetime import datetime, timedelta
+from rasterio.transform import from_bounds
+from dateutil.relativedelta import relativedelta
+from sentinelhub import BBox, CRS, bbox_to_dimensions, SentinelHubRequest, DataCollection, MimeType
 
 def plot_image(
     image: np.ndarray,
@@ -231,23 +233,99 @@ def save_geotiff(array, output_path, bbox, crs, dtype=np.float32):
     ) as dst:
         dst.write(array)
 
-import shutil
-
-def clean_output_dir(path: str):
+def generate_time_intervals(start_date: date, end_date: date, mode: str) -> list[tuple[date, date]]:
     """
-    Clean the output directory by removing all files and subdirectories.
-    If the directory does not exist, it will be created.
+    Generate time intervals between start_date and end_date based on the specified mode.
     Args:
-        path (str): Path to the output directory.
+        start_date (date): Start date as a date object.
+        end_date (date): End date as a date object.
+        mode (str): Time series mode, e.g., 'monthly', 'quarterly'.
+    Returns:
+        list of (start, end) date tuples as date objects.
     """
-    if os.path.exists(path):
-        for f in os.listdir(path):
-            full_path = os.path.join(path, f)
-            if os.path.isfile(full_path) or os.path.islink(full_path):
-                os.unlink(full_path)
-            elif os.path.isdir(full_path):
-                shutil.rmtree(full_path)
-        print(f"🧹 Cleaned output directory: {path}")
+    intervals = []
+
+    if mode == "monthly":
+        current = start_date
+        while current <= end_date:
+            last_day = calendar.monthrange(current.year, current.month)[1]
+            interval_end = date(current.year, current.month, last_day)
+            if interval_end > end_date:
+                interval_end = end_date
+            intervals.append((current, interval_end))
+            current = interval_end + timedelta(days=1)
+
+    elif mode == "quarterly":
+        current = start_date
+        while current <= end_date:
+            month = ((current.month - 1) // 3) * 3 + 1
+            first_month = date(current.year, month, 1)
+            last_month = month + 2
+            year = current.year if last_month <= 12 else current.year + 1
+            last_month = last_month if last_month <= 12 else last_month - 12
+            last_day = calendar.monthrange(year, last_month)[1]
+            interval_end = date(year, last_month, last_day)
+            if interval_end > end_date:
+                interval_end = end_date
+            intervals.append((first_month, interval_end))
+            current = interval_end + timedelta(days=1)
+
     else:
-        os.makedirs(path)
-        print(f"📁 Created new output directory: {path}")
+        raise ValueError(f"Unsupported time_series_mode: {mode}")
+
+    return intervals
+
+def format_time_interval_prefix(start: date, end: date) -> str:
+    """
+    Format a string prefix from a time interval.
+    Args:
+        start (date): Start date as a date object.
+        end (date): End date as a date object.
+    Returns:
+        str: Formatted prefix.
+    """
+    return f"{start.strftime('%Y%m%d')}__{end.strftime('%Y%m%d')}"
+
+def compute_stitched_bbox(tile_info: list[tuple[str, BBox]]) -> tuple[float, float, float, float]:
+    """
+    Compute the bounding box from a list of tile bounding boxes.
+
+    Args:
+        tile_info (list): List of (filename, BBox) tuples.
+
+    Returns:
+        tuple: (min_lon, min_lat, max_lon, max_lat)
+    """
+    all_bboxes = [bbox for _, bbox in tile_info]
+    min_lon = min(b.min_x for b in all_bboxes)
+    min_lat = min(b.min_y for b in all_bboxes)
+    max_lon = max(b.max_x for b in all_bboxes)
+    max_lat = max(b.max_y for b in all_bboxes)
+    return (min_lon, min_lat, max_lon, max_lat)
+
+def clean_all_outputs(base_path: str = "."):
+    """
+    Remove all tiles_* directories and output files in the specified base path.
+    Args:
+        base_path (str): Base directory to clean. Defaults to current directory.
+    """
+    import glob
+
+    removed_dirs = 0
+    removed_files = 0
+
+    # Remove all tiles_* directories
+    for folder in glob.glob(os.path.join(base_path, "tiles_*")):
+        if os.path.isdir(folder):
+            shutil.rmtree(folder)
+            print(f"🧹 Removed directory: {folder}")
+            removed_dirs += 1
+
+    # Remove standalone output files (.npy, .tif, .png)
+    for ext in ("*.npy", "*.tif", "*.png"):
+        for f in glob.glob(os.path.join(base_path, ext)):
+            os.remove(f)
+            print(f"🧼 Removed file: {f}")
+            removed_files += 1
+
+    print(f"\n✅ Cleanup complete — {removed_dirs} directories and {removed_files} files removed.")

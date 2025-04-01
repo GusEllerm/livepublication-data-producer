@@ -1,28 +1,30 @@
 from dataclasses import dataclass
-from typing import Tuple
-
+from datetime import date
+from typing import Tuple, Optional, List
 @dataclass
 class DataAcquisitionConfig:
     region: str
     bbox: list  # [min_lon, min_lat, max_lon, max_lat]
-    time_interval: Tuple[str, str]
-    temporal_granularity: str  # 'monthly', 'weekly', etc.
-    cloud_cover_threshold: int  # %
-    mosaicking_order: str       # 'leastCC', 'mostRecent', etc.
-    acquisition_strategy: str   # 'same_day_all_tiles', 'best_per_tile'
-    resolution: int             # in meters
-    index_type: str             # 'NDVI', 'EVI', etc.
-    data_level: str             # 'L1C' or 'L2A'
-    output_format: str          # 'GeoTIFF', 'NumPy', 'PNG'
+    time_interval: Tuple[date, date]
+    temporal_granularity: str
+    cloud_cover_threshold: int
+    mosaicking_order: str
+    acquisition_strategy: str
+    resolution: int
+    index_type: str
+    data_level: str
+    output_format: str
     cloud_masking: bool
-    tile_size_deg: float = None  # optional override for tile size
+    tile_size_deg: float = None
+    time_series_mode: Optional[str] = None
+    time_series_custom_intervals: Optional[List[Tuple[date, date]]] = None
 
 # === Example Presets ===
 
 vegetation_monitoring_monthly = DataAcquisitionConfig(
     region='Canterbury',
     bbox=[172.548523, -43.931033, 173.194656, -43.570442],
-    time_interval=('2022-01-01', '2022-12-31'),
+    time_interval=(date(2022, 1, 1), date(2022, 12, 31)),
     temporal_granularity='monthly',
     cloud_cover_threshold=30,
     mosaicking_order='leastCC',
@@ -37,7 +39,7 @@ vegetation_monitoring_monthly = DataAcquisitionConfig(
 rgb_snapshot_quickview = DataAcquisitionConfig(
     region='Canterbury',
     bbox=[172.548523, -43.931033, 173.194656, -43.570442],
-    time_interval=('2023-01-01', '2023-01-15'),
+    time_interval=(date(2023, 1, 1), date(2023, 1, 15)),
     temporal_granularity='single',
     cloud_cover_threshold=50,
     mosaicking_order='mostRecent',
@@ -52,7 +54,7 @@ rgb_snapshot_quickview = DataAcquisitionConfig(
 ndvi_high_precision = DataAcquisitionConfig(
     region='South Island',
     bbox=[166.0, -47.2, 174.5, -40.5],
-    time_interval=('2023-10-01', '2023-10-31'),
+    time_interval=(date(2023, 10, 1), date(2023, 10, 31)),
     temporal_granularity='weekly',
     cloud_cover_threshold=10,
     mosaicking_order='leastCC',
@@ -67,7 +69,7 @@ ndvi_high_precision = DataAcquisitionConfig(
 lilys_profile = DataAcquisitionConfig(
     region='Canterbury',
     bbox=[172.529297,-35.033370,173.546906,-34.313950],
-    time_interval=('2023-01-01', '2023-12-31'),
+    time_interval=(date(2023, 1, 1), date(2023, 12, 31)),
     temporal_granularity='monthly',
     cloud_cover_threshold=20,
     mosaicking_order='leastCC',
@@ -77,6 +79,22 @@ lilys_profile = DataAcquisitionConfig(
     data_level='L2A',
     output_format='GeoTIFF',
     cloud_masking=True
+)
+
+test_timeseries_profile = DataAcquisitionConfig(
+    region='Test Region',
+    bbox=[172.548523, -43.931033, 173.194656, -43.570442],  
+    time_interval=(date(2022, 6, 1), date(2022, 8, 31)),  # 3 months
+    temporal_granularity='monthly',
+    cloud_cover_threshold=40,
+    mosaicking_order='leastCC',
+    acquisition_strategy='best_per_tile',
+    resolution=10,
+    index_type='NDVI',
+    data_level='L2A',
+    output_format='GeoTIFF',
+    cloud_masking=True,
+    time_series_mode='monthly'
 )
 
 # === Evalscript for raw bands (for postprocessing) ===

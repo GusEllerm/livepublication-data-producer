@@ -9,3 +9,9 @@ coverage:
 
 htmlcov:
 	make -C Scripts htmlcov
+
+clean:
+	make -C Scripts clean
+
+view_timeseries:
+	make -C Scripts view_timeseries
