@@ -1,12 +1,16 @@
 import numpy as np
 import pytest
 import os
+import matplotlib.pyplot as plt
 from utils import (
     compute_ndvi,
     rasterize_true_color,
     generate_safe_tiles,
     stitch_tiles,
-    save_geotiff
+    save_geotiff,
+    plot_image,
+    download_safe_tiles,
+    SentinelHubRequest
 )
 from sentinelhub import BBox, CRS
 import rasterio
@@ -94,3 +98,63 @@ def test_save_geotiff_rgb(tmp_path):
         assert np.allclose(data[0], 0.2)
         assert np.allclose(data[1], 0.4)
         assert np.allclose(data[2], 0.6)
+
+def test_plot_image_no_save(monkeypatch):
+    # Monkeypatch plt.show to prevent GUI window
+    monkeypatch.setattr(plt, "show", lambda: None)
+    image = np.ones((2, 2, 3), dtype=np.float32)
+    plot_image(image, factor=1.0)
+
+def test_plot_image_with_save(tmp_path):
+    image = np.ones((2, 2, 3), dtype=np.float32)
+    out_path = tmp_path / "test_image.png"
+    plot_image(image, factor=1.0, save_path=str(out_path))
+    assert out_path.exists()
+
+# def test_download_safe_tiles_success(tmp_path, monkeypatch):
+#     from utils import download_safe_tiles
+#     from sentinelhub import BBox, CRS
+
+#     tiles = [BBox([0, 0, 0.1, 0.1], crs=CRS.WGS84)]
+#     time_interval = ("2022-01-01", "2022-01-31")
+#     config = None
+#     evalscript = "// mock script"
+
+#     class DummyRequest:
+#         def __init__(self, **kwargs): pass
+#         def get_data(self): return [np.ones((2, 2, 3))]
+
+#     monkeypatch.setattr("utils.SentinelHubRequest", DummyRequest)
+
+#     tile_info, failed_tiles = download_safe_tiles(
+#         tiles, time_interval, config, evalscript, output_dir=tmp_path, prefix="test"
+#     )
+
+#     assert len(tile_info) == 1
+#     assert len(failed_tiles) == 0
+#     saved_file = tmp_path / "test_000.npy"
+#     assert saved_file.exists()
+#     data = np.load(saved_file)
+#     assert data.shape == (2, 2, 3)
+
+# def test_download_safe_tiles_failure(tmp_path, monkeypatch):
+#     from utils import download_safe_tiles
+#     from sentinelhub import BBox, CRS
+
+#     tiles = [BBox([0, 0, 0.1, 0.1], crs=CRS.WGS84)]
+#     time_interval = ("2022-01-01", "2022-01-31")
+#     config = None
+#     evalscript = "// mock script"
+
+#     class DummyRequest:
+#         def __init__(self, **kwargs): pass
+#         def get_data(self): raise RuntimeError("Simulated API failure")
+
+#     monkeypatch.setattr("utils.SentinelHubRequest", lambda *args, **kwargs: DummyRequest())
+
+#     tile_info, failed_tiles = download_safe_tiles(
+#         tiles, time_interval, config, evalscript, output_dir=tmp_path, prefix="fail"
+#     )
+
+#     assert len(tile_info) == 0
+#     assert len(failed_tiles) == 1

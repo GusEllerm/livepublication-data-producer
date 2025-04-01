@@ -15,3 +15,6 @@ clean:
 
 view_timeseries:
 	make -C Scripts view_timeseries
+
+test:
+	make -C Scripts test
