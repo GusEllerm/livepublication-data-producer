@@ -44,3 +44,26 @@ def test_generate_quarterly_intervals():
     assert intervals[1] == (date(2022, 4, 1), date(2022, 6, 30))
     assert intervals[2] == (date(2022, 7, 1), date(2022, 9, 30))
     assert intervals[3] == (date(2022, 10, 1), date(2022, 12, 31))
+
+def test_generate_monthly_intervals_correct_division():
+    start = date(2023, 1, 1)
+    end = date(2023, 4, 30)
+    expected = [
+        (date(2023, 1, 1), date(2023, 1, 31)),
+        (date(2023, 2, 1), date(2023, 2, 28)),
+        (date(2023, 3, 1), date(2023, 3, 31)),
+        (date(2023, 4, 1), date(2023, 4, 30))
+    ]
+    intervals = generate_time_intervals(start, end, "monthly")
+    assert intervals == expected
+
+def test_generate_strict_provenance_daily_intervals():
+    start = date(2023, 1, 1)
+    end = date(2023, 1, 3)
+    expected = [
+        (date(2023, 1, 1), date(2023, 1, 1)),
+        (date(2023, 1, 2), date(2023, 1, 2)),
+        (date(2023, 1, 3), date(2023, 1, 3))
+    ]
+    intervals = generate_time_intervals(start, end, "monthly", strict_provenance=True)
+    assert intervals == expected

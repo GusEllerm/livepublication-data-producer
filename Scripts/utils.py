@@ -233,42 +233,42 @@ def save_geotiff(array, output_path, bbox, crs, dtype=np.float32):
     ) as dst:
         dst.write(array)
 
-def generate_time_intervals(start_date: date, end_date: date, mode: str) -> list[tuple[date, date]]:
+def generate_time_intervals(start_date: date, end_date: date, mode: str, strict_provenance: bool = False) -> list[tuple[date, date]]:
     """
     Generate time intervals between start_date and end_date based on the specified mode.
     Args:
         start_date (date): Start date as a date object.
         end_date (date): End date as a date object.
         mode (str): Time series mode, e.g., 'monthly', 'quarterly'.
+        strict_provenance (bool): If True, generate 1-day intervals regardless of mode.
     Returns:
         list of (start, end) date tuples as date objects.
     """
+    if start_date > end_date:
+        raise ValueError("start_date must be before end_date")
+
     intervals = []
+    current = start_date
+
+    if strict_provenance:
+        while current <= end_date:
+            intervals.append((current, current))
+            current += timedelta(days=1)
+        return intervals
 
     if mode == "monthly":
-        current = start_date
         while current <= end_date:
-            last_day = calendar.monthrange(current.year, current.month)[1]
-            interval_end = date(current.year, current.month, last_day)
-            if interval_end > end_date:
-                interval_end = end_date
+            next_month = current + relativedelta(months=1)
+            interval_end = min(next_month - timedelta(days=1), end_date)
             intervals.append((current, interval_end))
-            current = interval_end + timedelta(days=1)
+            current = next_month
 
     elif mode == "quarterly":
-        current = start_date
         while current <= end_date:
-            month = ((current.month - 1) // 3) * 3 + 1
-            first_month = date(current.year, month, 1)
-            last_month = month + 2
-            year = current.year if last_month <= 12 else current.year + 1
-            last_month = last_month if last_month <= 12 else last_month - 12
-            last_day = calendar.monthrange(year, last_month)[1]
-            interval_end = date(year, last_month, last_day)
-            if interval_end > end_date:
-                interval_end = end_date
-            intervals.append((first_month, interval_end))
-            current = interval_end + timedelta(days=1)
+            next_quarter = current + relativedelta(months=3)
+            interval_end = min(next_quarter - timedelta(days=1), end_date)
+            intervals.append((current, interval_end))
+            current = next_quarter
 
     else:
         raise ValueError(f"Unsupported time_series_mode: {mode}")
