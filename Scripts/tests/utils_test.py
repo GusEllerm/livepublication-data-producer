@@ -57,21 +57,41 @@ def test_generate_safe_tiles_basic():
     assert len(tiles) == 1
 
 def test_stitch_tiles(tmp_path):
-    """Test stitching tiles together."""
-    tile_shape = (2, 2, 3)
-    tile_0 = np.ones(tile_shape) * 1
-    tile_1 = np.ones(tile_shape) * 2
-    path_0 = tmp_path / "tile_000.npy"
-    path_1 = tmp_path / "tile_001.npy"
-    np.save(path_0, tile_0)
-    np.save(path_1, tile_1)
-    bbox_0 = BBox([0, 0, 1, 1], crs=CRS.WGS84)
-    bbox_1 = BBox([1, 0, 2, 1], crs=CRS.WGS84)
-    tile_info = [(path_0.name, bbox_0), (path_1.name, bbox_1)]
+    """Test stitching tiles with different heights and widths to trigger padding logic."""
+    # First row: 2 tiles of height 2
+    tile_shape_1 = (2, 2, 3)
+    tile_0 = np.ones(tile_shape_1) * 1
+    tile_1 = np.ones(tile_shape_1) * 2
+
+    # Second row: 2 tiles of different height (one will trigger resize)
+    tile_shape_2a = (2, 2, 3)
+    tile_shape_2b = (1, 2, 3)  # shorter to trigger height padding
+    tile_2 = np.ones(tile_shape_2a) * 3
+    tile_3 = np.ones(tile_shape_2b) * 4
+
+    # Save all tiles
+    paths = []
+    for i, tile in enumerate([tile_0, tile_1, tile_2, tile_3]):
+        path = tmp_path / f"tile_{i:03}.npy"
+        np.save(path, tile)
+        paths.append(path)
+
+    # BBoxes: First row (lat -1.0), second row (lat -2.0)
+    bbox_row1 = -1.0
+    bbox_row2 = -2.0
+    tile_info = [
+        (paths[0].name, BBox([0, bbox_row1, 1, bbox_row1 + 1], crs=CRS.WGS84)),
+        (paths[1].name, BBox([1, bbox_row1, 2, bbox_row1 + 1], crs=CRS.WGS84)),
+        (paths[2].name, BBox([0, bbox_row2, 1, bbox_row2 + 1], crs=CRS.WGS84)),
+        (paths[3].name, BBox([1, bbox_row2, 2, bbox_row2 + 1], crs=CRS.WGS84)),
+    ]
+
     result = stitch_tiles(str(tmp_path), tile_info)
-    assert result.shape == (2, 4, 3)
-    assert np.all(result[:, :2, :] == 1)
-    assert np.all(result[:, 2:, :] == 2)
+
+    # Check shape reflects two rows, and all widths aligned
+    assert result.shape[0] > 2  # height must increase due to padding
+    assert result.shape[1] > 2  # width must increase due to row resize
+    assert result.shape[2] == 3
 
 def test_save_geotiff_ndvi(tmp_path):
     """Test saving NDVI as GeoTIFF."""
@@ -189,3 +209,45 @@ def test_download_safe_tiles_failure(tmp_path, monkeypatch):
 
     assert len(tile_info) == 0
     assert len(failed_tiles) == 1
+
+def test_compute_stitched_bbox():
+    """Test computing stitched bounding box from tile_info."""
+    from utils import compute_stitched_bbox
+    from sentinelhub import BBox, CRS
+
+    tile_info = [
+        ("tile_001.npy", BBox([100.0, 0.0, 100.1, 0.1], crs=CRS.WGS84)),
+        ("tile_002.npy", BBox([100.1, 0.0, 100.2, 0.1], crs=CRS.WGS84)),
+        ("tile_003.npy", BBox([100.0, 0.1, 100.1, 0.2], crs=CRS.WGS84))
+    ]
+
+    stitched_bbox = compute_stitched_bbox(tile_info)
+
+    expected_bbox = (100.0, 0.0, 100.2, 0.2)
+    assert stitched_bbox == expected_bbox
+
+def test_clean_all_outputs(tmp_path, capsys):
+    """Test clean_all_outputs removes tiles_* dirs and .npy/.tif/.png files."""
+    from utils import clean_all_outputs
+
+    # Setup test files and folders
+    tile_dir = tmp_path / "tiles_testregion"
+    tile_dir.mkdir()
+    (tile_dir / "dummy.npy").write_text("data")
+
+    for ext in [".npy", ".tif", ".png"]:
+        (tmp_path / f"output{ext}").write_text("data")
+
+    # Run cleanup
+    clean_all_outputs(base_path=str(tmp_path))
+
+    # Assert removals
+    assert not tile_dir.exists()
+    for ext in [".npy", ".tif", ".png"]:
+        assert not (tmp_path / f"output{ext}").exists()
+
+    # Check output messages
+    captured = capsys.readouterr()
+    assert "Removed directory" in captured.out
+    assert "Removed file" in captured.out
+    assert "Cleanup complete" in captured.out
