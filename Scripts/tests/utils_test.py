@@ -17,6 +17,7 @@ import rasterio
 from rasterio.crs import CRS as RioCRS
 
 def test_compute_ndvi_basic():
+    """Test NDVI calculation with basic input."""
     red = np.full((2, 2), 0.2)
     nir = np.full((2, 2), 0.6)
     data = np.stack([
@@ -31,6 +32,7 @@ def test_compute_ndvi_basic():
     assert np.allclose(ndvi, 0.5)
 
 def test_rasterize_true_color_range():
+    """Test rasterization of true color with basic input."""
     red = np.full((2, 2), 0.1)
     green = np.full((2, 2), 0.3)
     blue = np.full((2, 2), 0.5)
@@ -40,6 +42,7 @@ def test_rasterize_true_color_range():
     assert np.all(rgb <= 1.0)
 
 def test_generate_safe_tiles_basic():
+    """Test generation of safe tiles with basic input."""
     aoi = [172.0, -44.0, 172.1, -43.9]
     resolution = 10
     tiles = generate_safe_tiles(aoi, resolution=resolution, max_dim=2500, buffer=1.0)
@@ -54,6 +57,7 @@ def test_generate_safe_tiles_basic():
     assert len(tiles) == 1
 
 def test_stitch_tiles(tmp_path):
+    """Test stitching tiles together."""
     tile_shape = (2, 2, 3)
     tile_0 = np.ones(tile_shape) * 1
     tile_1 = np.ones(tile_shape) * 2
@@ -70,6 +74,7 @@ def test_stitch_tiles(tmp_path):
     assert np.all(result[:, 2:, :] == 2)
 
 def test_save_geotiff_ndvi(tmp_path):
+    """Test saving NDVI as GeoTIFF."""
     array = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=np.float32)
     bbox = (172.0, -44.0, 172.1, -43.9)
     crs = RioCRS.from_epsg(4326)
@@ -84,6 +89,7 @@ def test_save_geotiff_ndvi(tmp_path):
         assert np.allclose(data, array)
 
 def test_save_geotiff_rgb(tmp_path):
+    """Test saving RGB as GeoTIFF."""
     rgb = np.zeros((2, 2, 3), dtype=np.float32)
     rgb[..., 0] = 0.2
     rgb[..., 1] = 0.4
@@ -100,61 +106,86 @@ def test_save_geotiff_rgb(tmp_path):
         assert np.allclose(data[2], 0.6)
 
 def test_plot_image_no_save(monkeypatch):
+    """Test plotting an image without saving."""
     # Monkeypatch plt.show to prevent GUI window
     monkeypatch.setattr(plt, "show", lambda: None)
     image = np.ones((2, 2, 3), dtype=np.float32)
     plot_image(image, factor=1.0)
 
 def test_plot_image_with_save(tmp_path):
+    """Test plotting an image and saving it."""
     image = np.ones((2, 2, 3), dtype=np.float32)
     out_path = tmp_path / "test_image.png"
     plot_image(image, factor=1.0, save_path=str(out_path))
     assert out_path.exists()
 
-# def test_download_safe_tiles_success(tmp_path, monkeypatch):
-#     from utils import download_safe_tiles
-#     from sentinelhub import BBox, CRS
+def test_download_safe_tiles_success(tmp_path, monkeypatch):
+    """Test that download_safe_tiles function successfully downloads safe tiles using a mocked SentinelHubRequest.
+    
+    This test verifies that:
+    - The function correctly processes a valid, mocked request.
+    - A .npy file is created with the expected shape and data.
+    - The returned tile_info list contains the correct tile information.
+    - No failed tiles are reported.
+    """
+    from utils import download_safe_tiles
+    from sentinelhub import BBox, CRS
+    import utils  # for monkeypatch target
 
-#     tiles = [BBox([0, 0, 0.1, 0.1], crs=CRS.WGS84)]
-#     time_interval = ("2022-01-01", "2022-01-31")
-#     config = None
-#     evalscript = "// mock script"
+    tiles = [BBox([0, 0, 0.1, 0.1], crs=CRS.WGS84)]
+    time_interval = ("2022-01-01", "2022-01-31")
+    config = None
+    evalscript = "// mock script"
 
-#     class DummyRequest:
-#         def __init__(self, **kwargs): pass
-#         def get_data(self): return [np.ones((2, 2, 3))]
+    # Dummy response class
+    class DummyRequest:
+        def __init__(self, **kwargs): pass
+        def get_data(self): return [np.ones((2, 2, 3))]
 
-#     monkeypatch.setattr("utils.SentinelHubRequest", DummyRequest)
+        @classmethod
+        def input_data(cls, **kwargs): return kwargs
+        @classmethod
+        def output_response(cls, *args, **kwargs): return args
 
-#     tile_info, failed_tiles = download_safe_tiles(
-#         tiles, time_interval, config, evalscript, output_dir=tmp_path, prefix="test"
-#     )
+    # Patch the entire class
+    monkeypatch.setattr(utils, "SentinelHubRequest", DummyRequest)
 
-#     assert len(tile_info) == 1
-#     assert len(failed_tiles) == 0
-#     saved_file = tmp_path / "test_000.npy"
-#     assert saved_file.exists()
-#     data = np.load(saved_file)
-#     assert data.shape == (2, 2, 3)
+    tile_info, failed_tiles = download_safe_tiles(
+        tiles, time_interval, config, evalscript, output_dir=tmp_path, prefix="test"
+    )
 
-# def test_download_safe_tiles_failure(tmp_path, monkeypatch):
-#     from utils import download_safe_tiles
-#     from sentinelhub import BBox, CRS
+    assert len(tile_info) == 1
+    assert len(failed_tiles) == 0
+    saved_file = tmp_path / "test_000.npy"
+    assert saved_file.exists()
+    data = np.load(saved_file)
+    assert data.shape == (2, 2, 3)
 
-#     tiles = [BBox([0, 0, 0.1, 0.1], crs=CRS.WGS84)]
-#     time_interval = ("2022-01-01", "2022-01-31")
-#     config = None
-#     evalscript = "// mock script"
+def test_download_safe_tiles_failure(tmp_path, monkeypatch):
+    """Test that download_safe_tiles gracefully handles failed API calls."""
+    from utils import download_safe_tiles
+    from sentinelhub import BBox, CRS
+    import utils  # for monkeypatch target
 
-#     class DummyRequest:
-#         def __init__(self, **kwargs): pass
-#         def get_data(self): raise RuntimeError("Simulated API failure")
+    tiles = [BBox([0, 0, 0.1, 0.1], crs=CRS.WGS84)]
+    time_interval = ("2022-01-01", "2022-01-31")
+    config = None
+    evalscript = "// mock script"
 
-#     monkeypatch.setattr("utils.SentinelHubRequest", lambda *args, **kwargs: DummyRequest())
+    class DummyRequest:
+        def __init__(self, **kwargs): pass
+        def get_data(self): raise RuntimeError("Simulated API failure")
 
-#     tile_info, failed_tiles = download_safe_tiles(
-#         tiles, time_interval, config, evalscript, output_dir=tmp_path, prefix="fail"
-#     )
+        @classmethod
+        def input_data(cls, **kwargs): return kwargs
+        @classmethod
+        def output_response(cls, *args, **kwargs): return args
 
-#     assert len(tile_info) == 0
-#     assert len(failed_tiles) == 1
+    monkeypatch.setattr(utils, "SentinelHubRequest", DummyRequest)
+
+    tile_info, failed_tiles = download_safe_tiles(
+        tiles, time_interval, config, evalscript, output_dir=tmp_path, prefix="fail"
+    )
+
+    assert len(tile_info) == 0
+    assert len(failed_tiles) == 1
