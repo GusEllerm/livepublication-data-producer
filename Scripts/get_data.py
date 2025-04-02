@@ -2,9 +2,6 @@ import os
 import json
 import numpy as np
 
-with open("secrets.json") as f:
-    secrets = json.load(f)
-
 from rasterio.crs import CRS as RioCRS
 from sentinelhub import SHConfig, BBox, CRS, bbox_to_dimensions, SentinelHubCatalog, DataCollection, SentinelHubRequest, MimeType
 from profiles import rgb_snapshot_quickview, vegetation_monitoring_monthly, ndvi_high_precision, evalscript_raw_bands, lilys_profile
@@ -12,6 +9,9 @@ from utils import plot_image, generate_safe_tiles, download_safe_tiles, stitch_t
 
 # === Load config profile ===
 profile = vegetation_monitoring_monthly
+
+with open("secrets.json") as f:
+    secrets = json.load(f)
 
 config = SHConfig()
 config.sh_client_id = secrets["sh_client_id"]

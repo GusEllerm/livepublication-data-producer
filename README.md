@@ -1,4 +1,3 @@
-
 # 🌱 LivePublication Data Producer
 
 ![Tests](https://github.com/GusEllerm/livepublication-data-producer/actions/workflows/test.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/Coverage-View_Report-blue)](https://gusellerm.github.io/livepublication-data-producer/)
@@ -44,6 +43,20 @@ make test            # Runs unit tests in Scripts/tests
 ```
 
 ---
+
+💡 **Acquisition Strategies**
+
+Acquisition strategies define how to select the best tiles from a series of satellite observations based on certain criteria, such as cloud cover or acquisition date. The available strategies are:
+
+1. **leastCC (Least Cloud Cover):**
+   - Selects the tile with the least amount of cloud cover within a specified time interval.
+2. **mostRecent (Most Recent):**
+   - Selects the most recent observation for each time interval.
+3. **same_day_all_tiles (Same Day All Tiles):**
+   - Ensures that all tiles for the region are acquired on the same day, while minimizing cloud cover.
+4. **best_per_tile (Best Tile Per Region):**
+   - Selects the best tile for each region, considering cloud cover and other quality factors.
+
 
 ## 🗺 Directory Structure
 
