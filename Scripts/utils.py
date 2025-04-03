@@ -1,13 +1,12 @@
 from __future__ import annotations
 import calendar
-
-
 import os
 import cv2  
 import rasterio
 import shutil
 import numpy as np
 import matplotlib.pyplot as plt
+import json
 
 from typing import Any
 from datetime import date
@@ -16,11 +15,26 @@ from rasterio.transform import from_bounds
 from dateutil.relativedelta import relativedelta
 from sentinelhub import BBox, CRS, bbox_to_dimensions, SentinelHubRequest, DataCollection, MimeType
 
+def write_tile_metadata(metadata, output_path):
+    """
+    Write metadata to a JSON file.
+    Args:
+        metadata (dict): Metadata to write.
+        output_path (str): Path to save the metadata file.
+    """
+    # Convert any date objects to string
+    if 'time_interval' in metadata:
+        metadata['time_interval'] = [date.strftime('%Y-%m-%d') for date in metadata['time_interval']]
+
+    with open(output_path, 'w') as f:
+        json.dump(metadata, f, indent=4)
+
 def plot_image(
     image: np.ndarray,
     factor: float = 1.0,
     clip_range: tuple[float, float] | None = None,
     save_path: str | None = None,
+    title: str | None = None,
     **kwargs: Any
 ) -> None:
     """
@@ -30,6 +44,7 @@ def plot_image(
         factor (float): Factor to multiply the image by.
         clip_range (tuple): Range to clip the image values.
         save_path (str): Path to save the image.
+        title (str): Optional plot title.
         **kwargs: Additional arguments for plt.imshow.
     """
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15, 15))
@@ -37,12 +52,16 @@ def plot_image(
         ax.imshow(np.clip(image * factor, *clip_range), **kwargs)
     else:
         ax.imshow(image * factor, **kwargs)
+
+    if title:
+        ax.set_title(title)
+
     ax.set_xticks([])
     ax.set_yticks([])
 
     if save_path:
         fig.savefig(save_path, bbox_inches='tight', pad_inches=0)
-        plt.close(fig)  # Close the figure to avoid displaying it in notebooks
+        plt.close(fig)
     else:
         plt.show()
 
@@ -329,3 +348,168 @@ def clean_all_outputs(base_path: str = "."):
             removed_files += 1
 
     print(f"\n✅ Cleanup complete — {removed_dirs} directories and {removed_files} files removed.")
+
+def discover_orbit_metadata(
+    tile: BBox,
+    time_interval: tuple[date, date],
+    config,
+    evalscript: str,
+    output_dir: str,
+    prefix: str, 
+    ) -> dict:
+    """
+    Discover orbit metadata for a given tile and time interval using Mosaicking.ORBIT mode.
+    
+    Args:
+        tile (BBox): Tile bounding box to query.
+        time_interval (tuple): Tuple of (start_date, end_date).
+        config: SentinelHub config object.
+        output_dir (str): Path to save orbit metadata JSON file.
+        prefix (str): Prefix for the metadata file.
+
+    Returns:
+        dict: Parsed orbit metadata.
+    """
+    size = bbox_to_dimensions(tile, resolution=10)
+
+    request = SentinelHubRequest(
+        evalscript=evalscript,
+        input_data=[
+            SentinelHubRequest.input_data(
+                data_collection=DataCollection.SENTINEL2_L2A.define_from(
+                    name="s2l2a", service_url="https://sh.dataspace.copernicus.eu"
+                ),
+                time_interval=time_interval,
+            )
+        ],
+        responses=[
+            SentinelHubRequest.output_response("userdata", MimeType.JSON)
+        ],
+        bbox=tile,
+        size=size,
+        config=config
+    )
+
+    try:
+        response = request.get_data()[0]
+        if isinstance(response, dict) and "userdata.json" in response:
+            metadata = response["userdata.json"]
+        else:
+            metadata = response  # Fallback if JSON is returned directly
+    except Exception as e:
+        print(f"⚠️  Failed to retrieve orbit metadata: {e}")
+        raise
+
+    os.makedirs(output_dir, exist_ok=True)
+    metadata_path = os.path.join(output_dir, f"{prefix}_orbit_metadata.json")
+    
+    with open(metadata_path, 'w') as f:
+        json.dump(metadata, f, indent=4)
+
+    print(f"✅ Orbit metadata saved to: {metadata_path}")
+    return metadata
+
+def write_selected_orbit(orbit_data: dict, output_dir: str, prefix: str):
+    """
+    Write selected orbit information to a JSON file.
+    Args:
+        orbit_data (dict): Data for the selected orbit.
+        output_dir (str): Directory where the JSON will be saved.
+        prefix (str): Prefix for the output file name.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    file_path = os.path.join(output_dir, f"{prefix}_selected_orbit.json")
+    with open(file_path, "w") as f:
+        json.dump(orbit_data, f, indent=4)
+    print(f"✅ Selected orbit saved to: {file_path}")
+
+def select_best_orbit(metadata: dict, strategy: str = "least_cloud") -> dict:
+    """
+    Select the best orbit from the provided metadata using a specific strategy.
+
+    Args:
+        metadata (dict): Orbit metadata dictionary loaded from a metadata.json file.
+        strategy (str): Strategy name to use for selection.
+
+    Returns:
+        dict: Selected orbit dictionary.
+
+    Raises:
+        ValueError: If strategy is unknown or metadata is malformed.
+    """
+    orbits = metadata.get("orbits", [])
+    if not orbits:
+        raise ValueError("No orbits found in metadata.")
+
+    if strategy == "least_cloud":
+        # Compute average cloud coverage for each orbit
+        def avg_cloud(orbit):
+            clouds = [tile.get("cloudCoverage", 100.0) for tile in orbit.get("tiles", [])]
+            return sum(clouds) / len(clouds) if clouds else 100.0
+
+        best_orbit = min(orbits, key=avg_cloud)
+        return {
+            "strategy": "least_cloud",
+            "orbit_date": best_orbit["dateFrom"][:10],
+            "product_ids": [tile["productId"] for tile in best_orbit["tiles"]],
+            "tile_ids": [tile["tileId"] for tile in best_orbit["tiles"]],
+            "cloud_coverage": round(avg_cloud(best_orbit), 2),
+            "orbit": best_orbit
+        }
+
+    elif strategy in {"nearest_date", "max_coverage", "composite_score"}:
+        raise NotImplementedError(f"Strategy '{strategy}' is not implemented yet.")
+    else:
+        raise ValueError(f"Unknown orbit selection strategy: {strategy}")
+
+def download_selected_orbits(
+    tiles: list[BBox],
+    profile,
+    config,
+    evalscript: str,
+    output_dir_base: str = "./tiles"
+):
+    """
+    Download Sentinel Hub tiles using pre-selected orbits for each sub-bbox tile.
+
+    Args:
+        tiles (list): List of BBox tile geometries.
+        profile: Profile object containing region and strategy info.
+        config: Sentinel Hub config object.
+        evalscript (str): Evalscript to use for downloading imagery.
+        output_dir_base (str): Base directory to write output to.
+    """
+    region_id = profile.region.lower().replace(" ", "_")
+    output_dir = f"{output_dir_base}_{region_id}"
+    os.makedirs(output_dir, exist_ok=True)
+
+    tile_info_all = []
+    failed_tiles_all = []
+
+    for idx, tile in enumerate(tiles):
+        prefix = f"{region_id}_tile{idx}"
+        orbit_json_path = os.path.join(output_dir, f"{prefix}_selected_orbit.json")
+
+        try:
+            with open(orbit_json_path, "r") as f:
+                orbit_data = json.load(f)
+            orbit_date = orbit_data["orbit_date"]
+        except Exception as e:
+            print(f"⚠️  Skipping tile {idx} — could not load orbit metadata: {e}")
+            failed_tiles_all.append((idx, tile))
+            continue
+
+        time_interval = (orbit_date, orbit_date)
+        tile_info, failed_tiles = download_safe_tiles(
+            tiles=[tile],
+            time_interval=time_interval,
+            config=config,
+            evalscript=evalscript,
+            output_dir=output_dir,
+            prefix=prefix
+        )
+
+        tile_info_all.extend(tile_info)
+        failed_tiles_all.extend(failed_tiles)
+
+    return tile_info_all, failed_tiles_all

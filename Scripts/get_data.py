@@ -1,14 +1,15 @@
 import os
 import json
 import numpy as np
-
 from rasterio.crs import CRS as RioCRS
-from sentinelhub import SHConfig, BBox, CRS, bbox_to_dimensions, SentinelHubCatalog, DataCollection, SentinelHubRequest, MimeType
-from profiles import rgb_snapshot_quickview, vegetation_monitoring_monthly, ndvi_high_precision, evalscript_raw_bands, lilys_profile
-from utils import plot_image, generate_safe_tiles, download_safe_tiles, stitch_tiles, compute_ndvi, rasterize_true_color, save_geotiff, compute_stitched_bbox
+from sentinelhub import SHConfig, BBox, CRS
+from profiles import daily_ndvi_canterbury, discover_evalscript, evalscript_raw_bands
+from utils import generate_safe_tiles, discover_orbit_metadata, select_best_orbit, write_selected_orbit, download_selected_orbits
+from utils import stitch_tiles, compute_stitched_bbox, compute_ndvi, plot_image, rasterize_true_color, save_geotiff
+import matplotlib.pyplot as plt
 
 # === Load config profile ===
-profile = vegetation_monitoring_monthly
+profile = daily_ndvi_canterbury
 
 with open("secrets.json") as f:
     secrets = json.load(f)
@@ -29,66 +30,75 @@ tiles = generate_safe_tiles(
     profile.bbox,
     resolution=profile.resolution,
     max_dim=2500,
-    buffer=0.95 if not profile.tile_size_deg else 1.0
+    buffer=0.95 
 )
 print(f"⚙️  Generated {len(tiles)} tiles.")
+# tiles = [tiles[0]]  # For testing, only use the first tile
 
-# === Donwload raw band files for tiles ===
-tile_info, failed_tiles = download_safe_tiles(
-    tiles=tiles,
-    time_interval=profile.time_interval,
-    config=config,
-    evalscript=evalscript_raw_bands,
-    output_dir=output_dir,
-    prefix=prefix
-)
+for idx, tile_coords in enumerate(tiles):
+    tile = BBox(list(tile_coords), CRS.WGS84)
+    tile_prefix = f"{prefix}_tile{idx}"
 
-if not tile_info:
-    print("❌ No tiles were successfully downloaded. Aborting.")
-    exit(1)
-if failed_tiles:
-    print(f"⚠️ Warning: {len(failed_tiles)} out of {len(tiles)} tiles failed.")
-    for idx, bbox in failed_tiles:
-        print(f"   - Failed tile {idx}: {bbox}")
+    # === Discover orbit metadata ===
+    print(f"🔍 Discovering orbit metadata for tile {idx}...")
+    discover_orbit_metadata(
+        tile=tile,
+        time_interval=profile.time_interval,
+        config=config,
+        evalscript=discover_evalscript,
+        output_dir=output_dir,
+        prefix=tile_prefix,
+    )
+    metadata_path = os.path.join(output_dir, f"{tile_prefix}_orbit_metadata.json")
+    with open(metadata_path, 'r') as f:
+        metadata = json.load(f)
 
-# === Stitch tiles together ===
-stitched_image = stitch_tiles(output_dir, tile_info)
-np.save(os.path.join(output_dir, "stitched_raw_bands.npy"), stitched_image)
-print(f"✅ Stitched raw band matrix saved: shape={stitched_image.shape}")
+#     # === Select the best orbit ===
+#     print(f"🔍 Selecting the best orbit for tile {idx}...")
+#     best_orbit = select_best_orbit(metadata, strategy=profile.orbit_selection_strategy)
+#     print(f"✅ Orbit optimised for {best_orbit['strategy']} and has orbit date {best_orbit['orbit_date']}")
+#     write_selected_orbit(best_orbit, output_dir=output_dir, prefix=tile_prefix)
 
-stitched_bbox = compute_stitched_bbox(tile_info)
-stitched_crs = RioCRS.from_epsg(4326)
+# print("⏬ Downloading selected orbits for all tiles...")
+# tile_bboxes = [BBox(list(tile_coords), CRS.WGS84) for tile_coords in tiles]
+# tile_info, failed_tiles = download_selected_orbits(
+#     tiles=tile_bboxes,
+#     profile=profile,
+#     config=config,
+#     evalscript=evalscript_raw_bands,
+#     output_dir_base="./tiles"
+# )
+# print(f"✅ Download complete: {len(tile_info)} succeeded, {len(failed_tiles)} failed.")
 
-# === Postprocessing ===
-# NDVI example
-ndvi = compute_ndvi(stitched_image)
-np.save(os.path.join(output_dir, "ndvi.npy"), ndvi)
-plot_image(
-    ndvi,
-    factor=1.0,
-    clip_range=(-1, 1),
-    save_path=os.path.join(output_dir, "ndvi.png")
-)
-save_geotiff(
-    ndvi,
-    os.path.join(output_dir, "ndvi.tif"),
-    stitched_bbox,
-    stitched_crs
-)
-print("✅ NDVI computed and saved.")
+# if tile_info:
+#     print("🧵 Stitching tiles...")
+#     stitched_image = stitch_tiles(output_dir, tile_info)
+#     stitched_path = os.path.join(output_dir, "stitched_raw_bands.npy")
+#     np.save(stitched_path, stitched_image)
+#     print(f"✅ Stitched image saved to {stitched_path}")
 
-# Rasterise true color
-rgb = rasterize_true_color(stitched_image)
-plot_image(
-    rgb,
-    factor=1.0,
-    clip_range=(0, 1),
-    save_path=os.path.join(output_dir, "true_color.png")
-)
-save_geotiff(
-    rgb,
-    os.path.join(output_dir, "true_color.tif"),
-    stitched_bbox,
-    stitched_crs
-)
-print("✅ True color image rendered and saved.")
+#     print("🌿 Computing NDVI...")
+#     ndvi = compute_ndvi(stitched_image)
+#     plot_image(ndvi, title="NDVI", cmap="RdYlGn", save_path=os.path.join(output_dir, "ndvi.png"))
+#     ndvi_path = os.path.join(output_dir, "ndvi.tif")
+#     save_geotiff(
+#         ndvi,
+#         ndvi_path,
+#         compute_stitched_bbox(tile_info),
+#         RioCRS.from_epsg(4326)
+#     )
+#     print(f"✅ NDVI GeoTIFF saved to {ndvi_path}")
+
+#     print("🎨 Rendering true color composite...")
+#     rgb = rasterize_true_color(stitched_image)
+#     plot_image(rgb, title="True Color Composite", save_path=os.path.join(output_dir, "true_color.png"))
+#     rgb_path = os.path.join(output_dir, "true_color.tif")
+#     save_geotiff(
+#         rgb,
+#         rgb_path,
+#         compute_stitched_bbox(tile_info),
+#         RioCRS.from_epsg(4326)
+#     )
+#     print(f"✅ True color GeoTIFF saved to {rgb_path}")
+# else:
+#     print("⚠️ No tiles available to stitch or process.")

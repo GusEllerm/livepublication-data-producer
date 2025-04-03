@@ -1,31 +1,27 @@
+
 # 🌱 LivePublication Data Producer
 
 ![Tests](https://github.com/GusEllerm/livepublication-data-producer/actions/workflows/test.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/Coverage-View_Report-blue)](https://gusellerm.github.io/livepublication-data-producer/)
 
-This repository contains the **Data Producer** (Layer 1) for a LivePublication instance. It automates satellite data acquisition and preparation from Copernicus Sentinel-2 imagery using the Sentinel Hub API.
-
-The output is designed to support dynamic scientific publications that integrate computation and visualization, particularly for monitoring vegetative health in regions like New Zealand.
+The **Data Producer** is Layer 1 of the LivePublication system. It automates satellite data discovery and retrieval using the Sentinel Hub API, preparing Copernicus Sentinel-2 imagery for scientific publications with fully traceable provenance.
 
 ---
 
-## 📦 Features
+## 📦 Key Features
 
-- **Profile-based configuration**: Easily swap out AOIs, date ranges, and resolution presets via `profiles.py`
-- **Time series support**: Generate and analyze data across monthly or custom intervals
-- **Tile-safe downloader**: Automatically generates tiles that stay within SentinelHub request limits
-- **In-house stitching**: Merges downloaded `.npy` tiles into a full image array
-- **Postprocessing**: Computes NDVI and True Color rasters from raw bands
-- **GeoTIFF export**: Outputs `.tif` files with proper georeferencing for use in GIS
-- **Interactive viewers**: Toggle NDVI vs RGB for a single run or scroll through time series
-- **Graceful error handling**: Skips failed tiles and validates downloaded data
-- **Testing suite**: `pytest`-powered unit tests with temp data support
-- **Graceful cleanup**: Remove all generated tiles, images, and intermediate outputs with `make clean`
+- **Orbit-based provenance**: Metadata includes all product IDs and tile sources per request using `Mosaicking.ORBIT`
+- **Modular profiles**: Define AOIs, date ranges, and selection strategies in `profiles.py`
+- **Smart tiling**: Automatically splits large requests into API-safe sub-tiles
+- **Orbit selection**: Ranks and selects the best available orbit based on configurable strategy (e.g. least cloud)
+- **Imagery stitching**: Merges `.npy` tiles into a full-scene array
+- **Postprocessing**: Computes NDVI and renders true-color composites
+- **GeoTIFF output**: Exports `.tif` images with full geospatial metadata
+- **Full CLI workflow**: Reproducible data generation with Makefile commands
+- **Unit tests**: Lightweight test suite for all core utilities
 
 ---
 
 ## 🚀 Quick Start
-
-Install dependencies (use a virtual environment):
 
 ```bash
 pip install -r requirements.txt
@@ -34,74 +30,81 @@ pip install -r requirements.txt
 Then run:
 
 ```bash
-make run             # Executes get_data.py using current profile
-make view            # Launches the NDVI/true-color viewer for static output
-make timeseries      # Runs get_timeseries.py using a time-series profile
-make view_timeseries # Interactive viewer to scroll through time-based outputs
-make clean           # Removes all tiles_*/ folders and generated .npy/.tif/.png outputs
-make test            # Runs unit tests in Scripts/tests
+make run             # Process current profile (get_data.py)
+make timeseries      # Process profile over time (get_timeseries.py)
+make view            # View NDVI/true-color result interactively
+make view_timeseries # Scroll through time series frames
+make clean           # Remove all generated outputs
+make test            # Run unit tests
 ```
+
+> ⚠️ **Note:** The `get_timeseries.py` workflow has **not yet been updated** to use the new ORBIT-based system. It currently uses the legacy acquisition method and may not generate detailed provenance metadata.
 
 ---
 
-💡 **Acquisition Strategies**
+## 🧠 Orbit Selection Strategies
 
-Acquisition strategies define how to select the best tiles from a series of satellite observations based on certain criteria, such as cloud cover or acquisition date. The available strategies are:
+Orbit selection determines which Sentinel-2 orbit is used to fulfill a request:
 
-1. **leastCC (Least Cloud Cover):**
-   - Selects the tile with the least amount of cloud cover within a specified time interval.
-2. **mostRecent (Most Recent):**
-   - Selects the most recent observation for each time interval.
-3. **same_day_all_tiles (Same Day All Tiles):**
-   - Ensures that all tiles for the region are acquired on the same day, while minimizing cloud cover.
-4. **best_per_tile (Best Tile Per Region):**
-   - Selects the best tile for each region, considering cloud cover and other quality factors.
+| Strategy          | Description                                                      |
+| ----------------- | ---------------------------------------------------------------- |
+| `least_cloud`   | Selects the orbit with the lowest average cloud coverage         |
+| `most_recent`   | Chooses the most recently available orbit                        |
+| `same_day_all`  | Uses orbits where all required tiles share the same sensing date |
+| `best_per_tile` | Selects the best tile for each region individually (WIP)         |
 
+Unimplemented strategies will fail gracefully.
 
-## 🗺 Directory Structure
+---
+
+## 📂 Directory Overview
 
 ```
 Scripts/
-├── get_data.py             # Main entry point for single-run data generation
-├── get_timeseries.py       # Loop-based runner for time series data extraction
-├── visualise_data.py       # Interactive toggle viewer for single NDVI/true color set
-├── visualise_timeseries.py # Interactive scrollable time series comparison tool
-├── profiles.py             # Preset configurations (AOI, dates, resolution, etc.)
-├── utils.py                # Core processing functions (tiling, stitching, NDVI, saving)
-├── clean_outputs.py        # Optional cleaner script for output dir
+├── get_data.py             # Run once for current profile (single orbit)
+├── get_timeseries.py       # Run over time intervals (legacy logic)
+├── profiles.py             # AOIs and config definitions
+├── utils.py                # Tiling, stitching, download, metadata handling
+├── visualise_data.py       # NDVI / RGB toggle viewer
+├── visualise_timeseries.py # Scrollable time series viewer
+├── clean_outputs.py        # Output folder cleanup
 ├── tests/
-│   └── utils_test.py       # Unit tests for NDVI, stitching, etc.
+│   └── utils_test.py       # Core tests
 ```
 
 ---
 
-## ✅ Outputs
+## 📤 Output Files
 
-- `stitched_raw_bands.npy` — raw stacked bands
-- `ndvi.npy` / `ndvi.tif` / `ndvi.png` — vegetation index
-- `true_color.tif` / `.png` — natural color visual
-- For time series: subdirectories for each interval with the above outputs
-- All outputs saved with proper CRS and bounding box metadata
+For each run:
+
+- `*_orbit_metadata.json` — All orbits that intersect the request bbox
+- `*_selected_orbit.json` — The chosen orbit and its tile/product metadata
+- `.npy` tiles — Raw band arrays per tile
+- `stitched_raw_bands.npy` — Combined raw imagery
+- `ndvi.tif` / `ndvi.png` — NDVI output
+- `true_color.tif` / `.png` — Natural color imagery
+
+All GeoTIFFs include proper CRS and bounding box metadata.
 
 ---
 
 ## 🧪 Testing
 
-Run:
-
 ```bash
 make test
 ```
 
-Tests include:
+Covers:
 
-- Band math (`NDVI`, `True Color`)
-- Tiling logic
-- Stitching and alignment
-- GeoTIFF saving + reloading
+- NDVI & true-color raster generation
+- Tiling & stitching accuracy
+- Metadata parsing
+- GeoTIFF save/load consistency
 
 ---
 
 ## 📖 License
 
-[MIT License](LICENSE)
+MIT — use, share, and cite freely.
+_Developed as part of the LivePublication Framework._
