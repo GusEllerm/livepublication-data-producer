@@ -1,0 +1,55 @@
+name: Run tests with coverage
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.5.3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4.7.1
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests with coverage
+        run: |
+          make coverage
+
+      - name: Generate HTML coverage report
+        run: |
+          make htmlcov
+
+      - name: Show what will be deployed
+        run: |
+          echo "Contents of htmlcov:"
+          find htmlcov
+
+      - name: Deploy to GitHub Pages manually
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git clone --depth=1 --branch=gh-pages https://github.com/${{ github.repository }} gh-pages || git clone --depth=1 https://github.com/${{ github.repository }} gh-pages
+          cd gh-pages
+          git checkout --orphan temp
+          rm -rf *
+          cp -r ../htmlcov/* .
+          touch .nojekyll
+          git add .
+          git commit -m "Deploy coverage report"
+          git branch -M gh-pages
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git push -f origin gh-pages
