@@ -28,6 +28,7 @@ class DataAcquisitionConfig:
 # === Example Bboxes ===
 Small_bbox = [171.739011,-42.889392,171.771498,-42.866717]
 big_bbox = [172.5, -44.0, 173.2, -43.5]
+auckland = [174.089355,-37.727280,175.989990,-36.253133]
 # === Example Time Intervals ===
 ten_days = (date(2022, 1, 1), date(2022, 1, 10))
 two_months = (date(2022, 1, 1), date(2022, 3, 31))
@@ -37,7 +38,7 @@ six_months = (date(2022, 1, 1), date(2022, 6, 30))
 # === Example Presets ===
 daily_ndvi_canterbury = DataAcquisitionConfig(
     region='Canterbury',
-    bbox=big_bbox,
+    bbox=auckland,
     time_interval=six_months,
     cloud_cover_threshold=20,
     resolution=10,

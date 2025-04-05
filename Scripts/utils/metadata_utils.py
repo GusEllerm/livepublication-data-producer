@@ -1,7 +1,9 @@
 import os
 import json
 from datetime import date
-from sentinelhub import BBox, MimeType, SentinelHubRequest, DataCollection, bbox_to_dimensions
+from utils.logging_utils import log_step, log_success, log_warning, log_inline
+from utils.job_utils import get_tile_prefix, get_orbit_metadata_path
+from sentinelhub import BBox, MimeType, SentinelHubRequest, DataCollection, bbox_to_dimensions, CRS
 
 def discover_orbit_metadata(
     tile: BBox,
@@ -51,7 +53,7 @@ def discover_orbit_metadata(
         else:
             metadata = response  # Fallback if JSON is returned directly
     except Exception as e:
-        print(f"⚠️  Failed to retrieve orbit metadata: {e}")
+        log_warning(f"Failed to retrieve orbit metadata: {e}")
         raise
 
     os.makedirs(output_dir, exist_ok=True)
@@ -60,7 +62,6 @@ def discover_orbit_metadata(
     with open(metadata_path, 'w') as f:
         json.dump(metadata, f, indent=4)
 
-    print(f"✅ Orbit metadata saved to: {metadata_path}")
     return metadata
 
 def select_best_orbit(metadata: dict, strategy: str = "least_cloud") -> dict:
@@ -115,6 +116,70 @@ def write_selected_orbit(orbit_data: dict, output_dir: str, prefix: str):
     file_path = os.path.join(output_dir, f"{prefix}_selected_orbit.json")
     with open(file_path, "w") as f:
         json.dump(orbit_data, f, indent=4)
-    print(f"✅ Selected orbit saved to: {file_path}")
 
-  
+def discover_metadata_for_tiles(tiles, profile, config, paths, evalscript) -> dict:
+    """
+    Discover and load orbit metadata for all tiles in a workflow.
+
+    Args:
+        tiles (list): List of tile coordinates (BBox-like tuples).
+        profile: The profile object with region and time_interval.
+        config: SentinelHub config object.
+        paths (dict): Output directory structure dictionary.
+        evalscript (str): Evalscript to use for metadata request.
+
+    Returns:
+        dict: Mapping of tile_prefix -> parsed orbit metadata.
+    """
+    log_step("🔎 Discovering orbit metadata for tiles...")
+    metadata_by_tile = {}
+    log_inline(f"📡 Discovering metadata: 0/{len(tiles)} tiles complete")
+    for idx, tile_coords in enumerate(tiles):
+        tile = BBox(list(tile_coords), CRS.WGS84)
+        tile_prefix = get_tile_prefix(profile, idx)
+
+        discover_orbit_metadata(
+            tile=tile,
+            time_interval=profile.time_interval,
+            config=config,
+            evalscript=evalscript,
+            output_dir=paths["metadata"],
+            prefix=tile_prefix,
+        )
+
+        metadata_path = get_orbit_metadata_path(paths, tile_prefix)
+        with open(metadata_path, 'r') as f:
+            metadata_by_tile[tile_prefix] = json.load(f)
+
+        log_inline(f"📡 Discovering metadata: {idx + 1}/{len(tiles)} tiles complete")
+
+    print() # for newline after inline logging
+    return metadata_by_tile
+
+def select_orbits_for_tiles(metadata_by_tile: dict, strategy: str, output_dir: str) -> dict:
+    """
+    Select the best orbit for each tile's metadata and write results to file.
+
+    Args:
+        metadata_by_tile (dict): Mapping of tile_prefix -> metadata dict.
+        strategy (str): Strategy to use for selection (e.g. 'least_cloud').
+        output_dir (str): Directory to save selected orbit JSON files.
+
+    Returns:
+        dict: Mapping of tile_prefix -> selected orbit data.
+    """
+    log_step(f"🔎 Selecting best orbits using strategy: {strategy}")
+    selected_orbits = {}
+
+    log_inline(f"🎯 Selecting orbits: 0/{len(metadata_by_tile)} tiles complete")
+    for tile_prefix, metadata in metadata_by_tile.items():
+        try:
+            selected = select_best_orbit(metadata, strategy=strategy)
+            write_selected_orbit(selected, output_dir, tile_prefix)
+            selected_orbits[tile_prefix] = selected
+            log_inline(f"🎯 Selected orbits: {len(selected_orbits)}/{len(metadata_by_tile)} complete")
+        except Exception as e:
+            log_warning(f"Failed to select orbit for {tile_prefix}: {e}")
+
+    print() # for newline after inline logging
+    return selected_orbits

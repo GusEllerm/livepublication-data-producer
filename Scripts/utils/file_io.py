@@ -49,18 +49,32 @@ def clean_all_outputs(base_path: str = "."):
     removed_dirs = 0
     removed_files = 0
 
-    # Remove all tiles_* directories
+    # Remove legacy tiles_* directories
     for folder in glob.glob(os.path.join(base_path, "tiles_*")):
         if os.path.isdir(folder):
+            count = sum(len(files) for _, _, files in os.walk(folder))
             shutil.rmtree(folder)
-            print(f"🧹 Removed directory: {folder}")
+            print(f"🧹 Removed legacy directory: {folder} ({count} files)")
             removed_dirs += 1
+            removed_files += count
 
-    # Remove standalone output files (.npy, .tif, .png)
+    # Remove job-based structured output directories
+    outputs_path = os.path.join(base_path, "outputs")
+    if os.path.isdir(outputs_path):
+        for job_dir in os.listdir(outputs_path):
+            full_path = os.path.join(outputs_path, job_dir)
+            if os.path.isdir(full_path):
+                count = sum(len(files) for _, _, files in os.walk(full_path))
+                shutil.rmtree(full_path)
+                print(f"🧹 Removed job output directory: {full_path} ({count} files)")
+                removed_dirs += 1
+                removed_files += count
+
+    # Remove standalone output files (.npy, .tif, .png) in base path
     for ext in ("*.npy", "*.tif", "*.png"):
         for f in glob.glob(os.path.join(base_path, ext)):
             os.remove(f)
             print(f"🧼 Removed file: {f}")
             removed_files += 1
 
-    print(f"\n✅ Cleanup complete — {removed_dirs} directories and {removed_files} files removed.")
+    print(f"\n✅ Cleanup complete — {removed_dirs} directories removed, including {removed_files} total files.")

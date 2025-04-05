@@ -3,6 +3,9 @@ import json
 from sentinelhub import BBox, CRS
 from sentinelhub import SentinelHubRequest, MimeType, DataCollection, bbox_to_dimensions
 import numpy as np
+from utils.logging_utils import log_step, log_success, log_warning
+from utils.job_utils import get_tile_prefix
+from utils.logging_utils import log_inline
 
 def generate_safe_tiles(aoi, resolution=10, max_dim=2500, buffer=0.95):
     """
@@ -30,6 +33,7 @@ def generate_safe_tiles(aoi, resolution=10, max_dim=2500, buffer=0.95):
                 min(lat + tile_size_deg, max_lat)
             ], crs=CRS.WGS84)
             tiles.append(tile)
+    log_success(f"Generated {len(tiles)} tiles.")
     return tiles
 
 def download_safe_tiles(tiles, time_interval, config, evalscript,
@@ -73,16 +77,67 @@ def download_safe_tiles(tiles, time_interval, config, evalscript,
             if data is None or np.all(data == 0):
                 raise ValueError("Empty or invalid data")
         except Exception as e:
-            print(f"⚠️  Failed to get tile {i}: {e}")
+            log_warning(f"Failed to get tile {i}: {e}")
             failed_tiles.append((i, tile))
             continue
 
         npy_path = os.path.join(output_dir, f"{prefix}_{i:03}.npy")
         np.save(npy_path, data)
         tile_info.append((f"{prefix}_{i:03}.npy", tile))
-        print(f"✅ Saved {prefix}_{i:03}: shape={data.shape}")
 
     return tile_info, failed_tiles
+
+def download_orbits_for_tiles(tiles, selected_orbits, profile, config, evalscript, paths):
+    """
+    Download imagery for each tile using its selected orbit.
+
+    Args:
+        tiles (list): List of BBox tile geometries.
+        selected_orbits (dict): Mapping of tile_prefix -> selected orbit metadata.
+        profile: Profile object with region information.
+        config: Sentinel Hub config object.
+        evalscript (str): Evalscript to use for downloading imagery.
+        paths (dict): Dictionary of job output paths.
+
+    Returns:
+        tuple: (tile_info, failed_tiles)
+    """
+    if isinstance(tiles[0], tuple):
+        from utils.tile_utils import convert_tiles_to_bboxes
+        tiles = convert_tiles_to_bboxes(tiles)
+
+    tile_info_all = []
+    failed_tiles_all = []
+
+    log_inline(f"⏬ Downloading tiles: 0/{len(tiles)} complete")
+    for idx, tile in enumerate(tiles):
+        tile_prefix = get_tile_prefix(profile, idx)
+        orbit_data = selected_orbits.get(tile_prefix)
+
+        if not orbit_data:
+            log_warning(f"Skipping tile {tile_prefix} — no selected orbit found.")
+            failed_tiles_all.append((idx, tile))
+            continue
+
+        orbit_date = orbit_data["orbit_date"]
+        time_interval = (orbit_date, orbit_date)
+
+        tile_info, failed_tiles = download_safe_tiles(
+            tiles=[tile],
+            time_interval=time_interval,
+            config=config,
+            evalscript=evalscript,
+            output_dir=paths["raw_tiles"],
+            prefix=tile_prefix
+        )
+
+        tile_info_all.extend(tile_info)
+        failed_tiles_all.extend(failed_tiles)
+
+        log_inline(f"⏬ Downloading tiles: {len(tile_info_all)}/{len(tiles)} complete")
+
+    print()  # newline after inline output
+    return tile_info_all, failed_tiles_all
 
 def download_selected_orbits(
     tiles: list[BBox],
@@ -117,7 +172,7 @@ def download_selected_orbits(
                 orbit_data = json.load(f)
             orbit_date = orbit_data["orbit_date"]
         except Exception as e:
-            print(f"⚠️  Skipping tile {idx} — could not load orbit metadata: {e}")
+            log_warning(f"Skipping tile {idx} — could not load orbit metadata: {e}")
             failed_tiles_all.append((idx, tile))
             continue
 
@@ -135,3 +190,16 @@ def download_selected_orbits(
         failed_tiles_all.extend(failed_tiles)
 
     return tile_info_all, failed_tiles_all
+
+def convert_tiles_to_bboxes(tile_coords_list: list, crs: CRS = CRS.WGS84) -> list:
+    """
+    Convert a list of tile coordinate tuples to BBox objects.
+ 
+    Args:
+        tile_coords_list (list): List of [min_lon, min_lat, max_lon, max_lat] coordinates.
+        crs (CRS): Coordinate reference system. Defaults to WGS84.
+ 
+    Returns:
+        list: List of BBox objects.
+    """
+    return [BBox(list(coords), crs) for coords in tile_coords_list]
