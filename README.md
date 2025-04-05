@@ -18,8 +18,8 @@ The **Data Producer** is Layer 1 of the LivePublication system. It automates sat
 - **Imagery stitching**: Merges `.npy` tiles into a full-scene array
 - **Postprocessing**: Computes NDVI and renders true-color composites
 - **GeoTIFF output**: Exports `.tif` images with full geospatial metadata
-- **Output archiving**: Automatically saves and labels outputs from a run into a timestamped or user-defined archive folder
 - **Archived result viewing**: View NDVI and true-color outputs from any previously archived run
+- **Interactive visualisation tool with side-by-side NDVI / RGB view**
 - **Full CLI workflow**: Reproducible data generation with Makefile commands
 - **Unit tests**: Lightweight test suite for all core utilities
 
@@ -98,7 +98,7 @@ Scripts/
 │   ├── job_utils.py        # Job ID creation and path helpers
 │   ├── plotting.py         # Plot rendering helpers
 │   └── time_interval_utils.py  # Time interval generation and formatting
-├── visualise_data.py       # NDVI / RGB toggle viewer (with archive support)
+├── visualise_data.py       # Side-by-side NDVI / RGB viewer with metadata overlay and interaction
 ├── visualise_timeseries.py # Scrollable time series viewer
 ├── archive_data.py         # Archive outputs into a named or timestamped folder
 ├── clean_outputs.py        # Output folder cleanup
