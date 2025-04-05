@@ -1,14 +1,28 @@
+import argparse
 import rasterio
+import numpy as np
 import matplotlib.pyplot as plt
 from rasterio.plot import reshape_as_image
-import numpy as np
+import os
+
+# === Load parser and arguments ===
+parser = argparse.ArgumentParser()
+parser.add_argument("--archive", type=str, default=None, help="Optional archive folder name")
+args = parser.parse_args()
+
+# Determine input directory
+base_path = ("archive/" + args.archive) if args.archive else "tiles_canterbury"
+
+# Get the paths for NDVI and RGB images
+ndvi_path = os.path.join(base_path, "ndvi.tif")
+rgb_path = os.path.join(base_path, "true_color.tif")
 
 # Load NDVI
-with rasterio.open("tiles_canterbury/ndvi.tif") as ndvi_src:
+with rasterio.open(ndvi_path) as ndvi_src:
     ndvi = ndvi_src.read(1)
 
 # Load true color (and normalize if needed)
-with rasterio.open("tiles_canterbury/true_color.tif") as rgb_src:
+with rasterio.open(rgb_path) as rgb_src:
     rgb = reshape_as_image(rgb_src.read()).astype(np.float32)
     rgb /= np.max(rgb)  # normalize to [0, 1] if needed
 

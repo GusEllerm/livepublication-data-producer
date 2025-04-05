@@ -18,3 +18,6 @@ view_timeseries:
 
 test:
 	make -C Scripts test
+
+archive:
+	make -C Scripts archive

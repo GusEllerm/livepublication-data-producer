@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import date
 from typing import Tuple, Optional, List
+from utils.job_utils import generate_job_id
 
 @dataclass
 class DataAcquisitionConfig:
@@ -16,6 +17,7 @@ class DataAcquisitionConfig:
     time_series_mode: Optional[str] = None
     time_series_custom_intervals: Optional[List[Tuple[date, date]]] = None
     orbit_selection_strategy: str = "least_cloud"  # Strategy for selecting best orbit
+    job_id: Optional[str] = None
 
 # === Orbit Selection Strategies ===
 # "least_cloud": Select orbit with lowest average cloud coverage.
@@ -23,12 +25,20 @@ class DataAcquisitionConfig:
 # "max_coverage": (Planned) Select orbit with maximum spatial coverage of bbox.
 # "composite_score": (Planned) Combine multiple heuristics for scoring and ranking.
 
-# === Example Presets ===
+# === Example Bboxes ===
+Small_bbox = [171.739011,-42.889392,171.771498,-42.866717]
+big_bbox = [172.5, -44.0, 173.2, -43.5]
+# === Example Time Intervals ===
+ten_days = (date(2022, 1, 1), date(2022, 1, 10))
+two_months = (date(2022, 1, 1), date(2022, 3, 31))
+six_months = (date(2022, 1, 1), date(2022, 6, 30))
 
+
+# === Example Presets ===
 daily_ndvi_canterbury = DataAcquisitionConfig(
     region='Canterbury',
-    bbox=[172.5, -44.0, 173.2, -43.5],
-    time_interval=(date(2022, 1, 1), date(2022, 1, 10)),
+    bbox=big_bbox,
+    time_interval=six_months,
     cloud_cover_threshold=20,
     resolution=10,
     index_type='NDVI',
@@ -38,6 +48,7 @@ daily_ndvi_canterbury = DataAcquisitionConfig(
     time_series_mode='daily',
     orbit_selection_strategy='least_cloud'
 )
+daily_ndvi_canterbury.job_id = generate_job_id(daily_ndvi_canterbury)
 
 monthly_rgb_westcoast = DataAcquisitionConfig(
     region='West Coast',
@@ -52,6 +63,7 @@ monthly_rgb_westcoast = DataAcquisitionConfig(
     time_series_mode='monthly',
     orbit_selection_strategy='least_cloud'
 )
+monthly_rgb_westcoast.job_id = generate_job_id(monthly_rgb_westcoast)
 
 custom_ndvi_test = DataAcquisitionConfig(
     region='Test Area',
@@ -73,6 +85,7 @@ custom_ndvi_test = DataAcquisitionConfig(
     ],
     orbit_selection_strategy='least_cloud'
 )
+custom_ndvi_test.job_id = generate_job_id(custom_ndvi_test)
 
 
 discover_evalscript = """

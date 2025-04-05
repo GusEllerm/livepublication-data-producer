@@ -18,9 +18,8 @@ venv/
 
 # === Output Data ===
 tiles_*/
-*.npy
-*.tif
-*.png
+archive/
+outputs/
 
 # === Secrets ===
 secrets.json
@@ -29,7 +28,3 @@ secrets.json
 *.coverage
 .cache/
 htmlcov/
-
-
-# === example files ===
-show_tiles_canterbury/
