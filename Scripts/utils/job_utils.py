@@ -16,8 +16,7 @@ def generate_job_id(config: "DataAcquisitionConfig") -> str:
     start = config.time_interval[0].strftime('%Y%m%d')
     end = config.time_interval[1].strftime('%Y%m%d')
     region = config.region.lower().replace(" ", "_")
-    index = config.index_type.lower()
-    return f"{region}__{index}__{start}_{end}"
+    return f"{region}__{start}_{end}"
 
 
 def get_job_output_paths(config: "DataAcquisitionConfig") -> dict:

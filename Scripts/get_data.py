@@ -1,19 +1,13 @@
-import os
 import json
-import numpy as np
-from rasterio.crs import CRS as RioCRS
-from sentinelhub import SHConfig, BBox, CRS
-from profiles import daily_ndvi_canterbury, discover_evalscript, evalscript_raw_bands
+from sentinelhub import SHConfig
+from profiles import daily_ndvi_canterbury
+from evalscripts import discover_evalscript, evalscript_raw_bands
 
-from utils.image_utils import stitch_tiles, compute_ndvi, compute_stitched_bbox, rasterize_true_color, stitch_raw_tile_data, generate_ndvi_products, generate_true_color_products
+from utils.job_utils import prepare_job_output_dirs
+from utils.tile_utils import generate_safe_tiles, download_orbits_for_tiles
 from utils.metadata_utils import discover_metadata_for_tiles, select_orbits_for_tiles
-from utils.tile_utils import generate_safe_tiles, download_orbits_for_tiles, convert_tiles_to_bboxes
-from utils.job_utils import get_job_output_paths, prepare_job_output_dirs
-from utils.job_utils import get_tile_prefix, get_orbit_metadata_path, get_stitched_array_path
-from utils.file_io import save_geotiff
-from utils.plotting import plot_image
+from utils.image_utils import stitch_raw_tile_data, generate_ndvi_products, generate_true_color_products
 
-import matplotlib.pyplot as plt
 
 # === Load config profile ===
 profile = daily_ndvi_canterbury
@@ -37,7 +31,7 @@ tiles = generate_safe_tiles(
     max_dim=2500,
     buffer=0.95 
 )
-# tiles = [tiles[0]]  # For testing, only use the first tile
+tiles = [tiles[0]]  # For testing, only use the first tile
 
 tile_metadata = discover_metadata_for_tiles(
     tiles=tiles,
