@@ -3,7 +3,10 @@ import shutil
 from datetime import datetime
 from utils.logging_utils import log_step, log_block
 
-def generate_job_id(config: "DataAcquisitionConfig", interval: tuple = None) -> str:
+def generate_job_id(
+        config: "DataAcquisitionConfig", 
+        interval: tuple = None
+    ) -> str:
     """
     Generate a human-readable job ID from a DataAcquisitionConfig object.
     Optionally override the time interval to customize the job ID.
@@ -25,7 +28,9 @@ def generate_job_id(config: "DataAcquisitionConfig", interval: tuple = None) -> 
     return base_id
 
 
-def get_job_output_paths(config: "DataAcquisitionConfig") -> dict:
+def get_job_output_paths(
+        config: "DataAcquisitionConfig"
+    ) -> dict:
     """
     Return a dictionary of standardized output paths based on the job ID.
 
@@ -44,7 +49,17 @@ def get_job_output_paths(config: "DataAcquisitionConfig") -> dict:
         "stitched": os.path.join(base, "stitched"),
     }
 
-def prepare_job_output_dirs(config: "DataAcquisitionConfig") -> dict:
+def prepare_job_output_dirs(
+        config: "DataAcquisitionConfig"
+    ) -> dict:
+    """
+    Prepare the output directories for a job based on its configuration.
+    Creates a directory structure for raw tiles, imagery, metadata, and stitched outputs.
+    Args:
+        config (DataAcquisitionConfig): The configuration object for a data acquisition job.
+    Returns:
+        dict: A dictionary of output paths keyed by content type.
+    """
     lines = []
     paths = get_job_output_paths(config)
     last_key = list(paths)[-1]
@@ -56,7 +71,11 @@ def prepare_job_output_dirs(config: "DataAcquisitionConfig") -> dict:
         os.makedirs(path, exist_ok=True)
     return paths
 
-def archive_job_outputs(src_dir: str = ".", label: str = None, files_to_archive=None) -> str:
+def archive_job_outputs(
+        src_dir: str = ".", 
+        label: str = None, 
+        files_to_archive=None
+    ) -> str:
     """
     Archive output files from a directory into a named or timestamped archive folder.
 
@@ -99,7 +118,10 @@ def archive_job_outputs(src_dir: str = ".", label: str = None, files_to_archive=
     print(f"\n📦 Archive complete: {archive_path}")
     return archive_path
 
-def get_tile_prefix(config: "DataAcquisitionConfig", idx: int) -> str:
+def get_tile_prefix(
+        config: "DataAcquisitionConfig", 
+        idx: int
+    ) -> str:
     """
     Generate a consistent tile-specific prefix using the profile's region and tile index.
 
@@ -113,7 +135,10 @@ def get_tile_prefix(config: "DataAcquisitionConfig", idx: int) -> str:
     region = config.region.lower().replace(" ", "_")
     return f"{region}_tile{idx}"
 
-def get_orbit_metadata_path(paths: dict, tile_prefix: str) -> str:
+def get_orbit_metadata_path(
+        paths: dict, 
+        tile_prefix: str
+    ) -> str:
     """
     Construct the full file path for a tile's orbit metadata JSON.
  
@@ -126,7 +151,9 @@ def get_orbit_metadata_path(paths: dict, tile_prefix: str) -> str:
     """
     return os.path.join(paths["metadata"], f"{tile_prefix}_orbit_metadata.json")
 
-def get_stitched_array_path(paths: dict) -> str:
+def get_stitched_array_path(
+        paths: dict
+    ) -> str:
     """
     Construct the full file path for the stitched raw bands .npy output.
 

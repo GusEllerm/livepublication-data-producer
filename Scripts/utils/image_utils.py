@@ -9,7 +9,10 @@ from utils.job_utils import get_stitched_array_path
 from utils.logging_utils import log_step, log_success
 
 
-def stitch_tiles(tile_dir, tile_coords):
+def stitch_tiles(
+        tile_dir: str, 
+        tile_coords: list[tuple[str, BBox]]
+    ) -> np.ndarray:
     """
     Stitch tiles together based on their bounding boxes.
     Args:
@@ -56,13 +59,13 @@ def stitch_tiles(tile_dir, tile_coords):
     return full_image
 
 
-def compute_stitched_bbox(tile_info: list[tuple[str, BBox]]) -> tuple[float, float, float, float]:
+def compute_stitched_bbox(
+        tile_info: list[tuple[str, BBox]]
+    ) -> tuple[float, float, float, float]:
     """
     Compute the bounding box from a list of tile bounding boxes.
-
     Args:
         tile_info (list): List of (filename, BBox) tuples.
-
     Returns:
         tuple: (min_lon, min_lat, max_lon, max_lat)
     """
@@ -74,7 +77,9 @@ def compute_stitched_bbox(tile_info: list[tuple[str, BBox]]) -> tuple[float, flo
     return (min_lon, min_lat, max_lon, max_lat)
 
 
-def compute_ndvi(stitched_array):
+def compute_ndvi(
+        stitched_array
+    ) -> np.ndarray:
     """
     Compute NDVI from the stitched array.
     Args:
@@ -88,7 +93,9 @@ def compute_ndvi(stitched_array):
     return np.clip(ndvi, -1, 1)
 
 
-def rasterize_true_color(stitched_array):
+def rasterize_true_color(
+        stitched_array
+    ) -> np.ndarray:
     """
     Rasterize true color from the stitched array.
     Args:
@@ -102,16 +109,15 @@ def rasterize_true_color(stitched_array):
     rgb = np.stack([red, green, blue], axis=-1)
     return np.clip(rgb * 3.5, 0, 1)
 
-def stitch_raw_tile_data(tile_info: list[tuple[str, BBox]], input_dir: str, output_path: str = None, paths: dict = None) -> np.ndarray:
+def stitch_raw_tile_data(
+        paths: dict,
+        tile_info: list[tuple[str, BBox]], 
+    ) -> np.ndarray:
     """
     Stitch raw tile arrays into a single image and save to disk.
-
     Args:
         tile_info (list): List of (filename, BBox) tuples.
-        input_dir (str): Directory containing raw tile .npy files.
-        output_path (str, optional): File path to save the stitched image. If None, uses default path from `paths`.
         paths (dict, optional): Output directory structure used to determine default path if `output_path` is not provided.
-
     Returns:
         np.ndarray: The stitched image array.
     """
@@ -120,13 +126,12 @@ def stitch_raw_tile_data(tile_info: list[tuple[str, BBox]], input_dir: str, outp
         if not tile_info:
             raise ValueError("No tiles available to stitch or process.")
 
-        if output_path is None:
-            if paths is None:
-                raise ValueError("Either output_path or paths must be provided.")
-            output_path = get_stitched_array_path(paths)
+        if paths is None:
+            raise ValueError("Paths dictionary is required to save the stitched image.")
+        output_path = get_stitched_array_path(paths)
 
         log_step("🧵 Stitching tiles...")
-        stitched_array = stitch_tiles(input_dir, tile_info)
+        stitched_array = stitch_tiles(paths["raw_tiles"], tile_info)
         np.save(output_path, stitched_array)
         log_success(f"Stitched tiles saved to {output_path}")
         return stitched_array
@@ -135,14 +140,17 @@ def stitch_raw_tile_data(tile_info: list[tuple[str, BBox]], input_dir: str, outp
         log_warning(f"Stitching skipped: {e}")
         return None
 
-def generate_ndvi_products(stitched_image: np.ndarray, tile_info: list[tuple[str, BBox]], paths: dict):
+def generate_ndvi_products(
+        paths: dict,
+        tile_info: list[tuple[str, BBox]],
+        stitched_image: np.ndarray
+    ) -> None:
     """
     Compute and save NDVI imagery as PNG and GeoTIFF.
-
     Args:
-        stitched_image (np.ndarray): Stitched satellite image.
-        tile_info (list): List of (filename, BBox) tuples.
         paths (dict): Dictionary of output directory paths.
+        tile_info (list): List of (filename, BBox) tuples.
+        stitched_image (np.ndarray): Stitched satellite image.
     """
     if stitched_image is None or tile_info is None or len(tile_info) == 0:
         from utils.logging_utils import log_warning
@@ -152,7 +160,7 @@ def generate_ndvi_products(stitched_image: np.ndarray, tile_info: list[tuple[str
     ndvi = compute_ndvi(stitched_image)
 
     ndvi_png_path = os.path.join(paths["imagery"], "ndvi.png")
-    plot_image(ndvi, title="NDVI", cmap="RdYlGn", save_path=ndvi_png_path)
+    plot_image(ndvi, cmap="RdYlGn", save_path=ndvi_png_path)
 
     ndvi_tif_path = os.path.join(paths["imagery"], "ndvi.tif")
     bbox = compute_stitched_bbox(tile_info)
@@ -160,14 +168,17 @@ def generate_ndvi_products(stitched_image: np.ndarray, tile_info: list[tuple[str
 
     log_success("NDVI imagery saved.")
 
-def generate_true_color_products(stitched_image: np.ndarray, tile_info: list[tuple[str, BBox]], paths: dict):
+def generate_true_color_products(
+        paths: dict,
+        tile_info: list[tuple[str, BBox]], 
+        stitched_image: np.ndarray
+    ) -> None:
     """
     Compute and save true-color composite imagery as PNG and GeoTIFF.
-
     Args:
-        stitched_image (np.ndarray): Stitched satellite image.
-        tile_info (list): List of (filename, BBox) tuples.
         paths (dict): Dictionary of output directory paths.
+        tile_info (list): List of (filename, BBox) tuples.
+        stitched_image (np.ndarray): Stitched satellite image.
     """
     if stitched_image is None or tile_info is None or len(tile_info) == 0:
         from utils.logging_utils import log_warning
@@ -177,7 +188,7 @@ def generate_true_color_products(stitched_image: np.ndarray, tile_info: list[tup
     rgb = rasterize_true_color(stitched_image)
 
     rgb_png_path = os.path.join(paths["imagery"], "true_color.png")
-    plot_image(rgb, title="True Color Composite", save_path=rgb_png_path)
+    plot_image(rgb, save_path=rgb_png_path)
 
     rgb_tif_path = os.path.join(paths["imagery"], "true_color.tif")
     bbox = compute_stitched_bbox(tile_info)

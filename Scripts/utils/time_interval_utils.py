@@ -3,14 +3,14 @@ from datetime import date, timedelta
 from utils.job_utils import generate_job_id
 from dateutil.relativedelta import relativedelta
 
-def generate_time_intervals(profile) -> list[tuple[date, date]]:
+def generate_time_intervals(
+        profile
+    ) -> list[tuple[date, date]]:
     """
     Generate time intervals for a given profile using its time_series_mode or explicit intervals.
     All modes follow strict provenance, meaning each interval corresponds to a separate retrieval.
-
     Args:
         profile (DataAcquisitionConfig): The configured profile.
-
     Returns:
         list of (start_date, end_date) tuples
     """
@@ -51,7 +51,10 @@ def generate_time_intervals(profile) -> list[tuple[date, date]]:
 
     return intervals
 
-def daterange(start: date, end: date) -> list[date]:
+def daterange(
+        start: date, 
+        end: date
+    ) -> list[date]:
     """
     Generate a list of dates between start and end, inclusive.
     Args:
@@ -62,14 +65,14 @@ def daterange(start: date, end: date) -> list[date]:
     """
     return [start + timedelta(days=i) for i in range((end - start).days + 1)]
 
-def create_timeseries_jobs(profile) -> list:
+def create_timeseries_jobs(
+        profile
+    ) -> list:
     """
     Create a list of sub-profiles (DataAcquisitionConfig) for each time interval based on the profile's time series mode.
     Each returned profile represents an individual job with its own job_id and a reference to the parent job.
-
     Args:
         profile (DataAcquisitionConfig): The original timeseries profile.
-
     Returns:
         list[DataAcquisitionConfig]: A list of derived job profiles with modified time intervals and job metadata.
     """

@@ -1,28 +1,27 @@
 import os
 import json
 from datetime import date
-from utils.logging_utils import log_step, log_success, log_warning, log_inline
+from utils.logging_utils import log_step, log_warning, log_inline
 from utils.job_utils import get_tile_prefix, get_orbit_metadata_path
-from sentinelhub import BBox, MimeType, SentinelHubRequest, DataCollection, bbox_to_dimensions, CRS
+from sentinelhub import BBox, MimeType, SentinelHubRequest, DataCollection, bbox_to_dimensions, CRS, SHConfig
 
 def discover_orbit_metadata(
+    paths: dict,
     tile: BBox,
     time_interval: tuple[date, date],
-    config,
+    config: SHConfig,
     evalscript: str,
-    output_dir: str,
     prefix: str, 
-    ) -> dict:
+) -> dict:
     """
     Discover orbit metadata for a given tile and time interval using Mosaicking.ORBIT mode.
-    
     Args:
+        paths (dict): Output directory structure dictionary.
         tile (BBox): Tile bounding box to query.
         time_interval (tuple): Tuple of (start_date, end_date).
         config: SentinelHub config object.
-        output_dir (str): Path to save orbit metadata JSON file.
+        evalscript (str): Evalscript to use for metadata request.
         prefix (str): Prefix for the metadata file.
-
     Returns:
         dict: Parsed orbit metadata.
     """
@@ -56,29 +55,29 @@ def discover_orbit_metadata(
         log_warning(f"Failed to retrieve orbit metadata: {e}")
         raise
 
-    os.makedirs(output_dir, exist_ok=True)
-    metadata_path = os.path.join(output_dir, f"{prefix}_orbit_metadata.json")
+    os.makedirs(paths["metadata"], exist_ok=True)
+    metadata_path = os.path.join(paths["metadata"], f"{prefix}_orbit_metadata.json")
     
     with open(metadata_path, 'w') as f:
         json.dump(metadata, f, indent=4)
 
     return metadata
 
-def select_best_orbit(metadata: dict, strategy: str = "least_cloud") -> dict:
+def select_best_orbit(
+        metadata: dict, 
+        profile: "DataAcquisitionConfig"
+    ) -> dict:
     """
     Select the best orbit from the provided metadata using a specific strategy.
-
     Args:
         metadata (dict): Orbit metadata dictionary loaded from a metadata.json file.
-        strategy (str): Strategy name to use for selection.
-
+        profile: The profile object with orbit selection strategy.
     Returns:
         dict: Selected orbit dictionary.
-
-    Raises:
-        ValueError: If strategy is unknown or metadata is malformed.
     """
     orbits = metadata.get("orbits", [])
+    strategy = profile.orbit_selection_strategy
+
     if not orbits:
         raise ValueError("No orbits found in metadata")
 
@@ -104,30 +103,39 @@ def select_best_orbit(metadata: dict, strategy: str = "least_cloud") -> dict:
         raise ValueError(f"Unknown orbit selection strategy: {strategy}")
     
 
-def write_selected_orbit(orbit_data: dict, output_dir: str, prefix: str):
+def write_selected_orbit(
+        paths: dict, 
+        orbit_data: dict, 
+        prefix: str
+    ) -> None:
     """
     Write selected orbit information to a JSON file.
     Args:
+        paths (dict): Output directory structure dictionary.
         orbit_data (dict): Data for the selected orbit.
-        output_dir (str): Directory where the JSON will be saved.
         prefix (str): Prefix for the output file name.
     """
-    os.makedirs(output_dir, exist_ok=True)
-    file_path = os.path.join(output_dir, f"{prefix}_selected_orbit.json")
+    os.makedirs(paths["metadata"], exist_ok=True)
+    file_path = os.path.join(paths["metadata"], f"{prefix}_selected_orbit.json")
     with open(file_path, "w") as f:
         json.dump(orbit_data, f, indent=4)
 
-def discover_metadata_for_tiles(tiles, profile, config, paths, evalscript) -> dict:
+def discover_metadata_for_tiles(
+        paths: dict, 
+        tiles: list[BBox], 
+        profile: "DataAcquisitionConfig", 
+        config: SHConfig, 
+        evalscript: str
+    ) -> dict:
     """
     Discover and load orbit metadata for all tiles in a workflow.
 
     Args:
+        paths (dict): Output directory structure dictionary.
         tiles (list): List of tile coordinates (BBox-like tuples).
         profile: The profile object with region and time_interval.
         config: SentinelHub config object.
-        paths (dict): Output directory structure dictionary.
         evalscript (str): Evalscript to use for metadata request.
-
     Returns:
         dict: Mapping of tile_prefix -> parsed orbit metadata.
     """
@@ -143,7 +151,7 @@ def discover_metadata_for_tiles(tiles, profile, config, paths, evalscript) -> di
             time_interval=profile.time_interval,
             config=config,
             evalscript=evalscript,
-            output_dir=paths["metadata"],
+            paths=paths,
             prefix=tile_prefix,
         )
 
@@ -156,28 +164,31 @@ def discover_metadata_for_tiles(tiles, profile, config, paths, evalscript) -> di
     print() # for newline after inline logging
     return metadata_by_tile
 
-def select_orbits_for_tiles(metadata_by_tile: dict, strategy: str, output_dir: str) -> dict:
+def select_orbits_for_tiles(
+        paths: dict,
+        metadata_by_tile: dict, 
+        profile: "DataAcquisitionConfig"
+    ) -> dict:
     """
     Select the best orbit for each tile's metadata and write results to file.
-
     Args:
+        paths (dict): Output directory structure dictionary.
         metadata_by_tile (dict): Mapping of tile_prefix -> metadata dict.
-        strategy (str): Strategy to use for selection (e.g. 'least_cloud').
-        output_dir (str): Directory to save selected orbit JSON files.
-
+        profile: The profile object with region and time_interval.
     Returns:
         dict: Mapping of tile_prefix -> selected orbit data.
     """
-    log_step(f"🔎 Selecting best orbits using strategy: {strategy}")
+
+    log_step(f"🔎 Selecting best orbits using strategy: {profile.orbit_selection_strategy}")
     selected_orbits = {}
     failures = []
 
     log_inline(f"🎯 Selecting orbits: 0/{len(metadata_by_tile)} tiles complete")
     for tile_prefix, metadata in metadata_by_tile.items():
         try:
-            selected = select_best_orbit(metadata, strategy=strategy)
-            write_selected_orbit(selected, output_dir, tile_prefix)
-            selected_orbits[tile_prefix] = selected
+            orbit = select_best_orbit(metadata=metadata, profile=profile)
+            write_selected_orbit(paths=paths, orbit_data=orbit, prefix=tile_prefix)
+            selected_orbits[tile_prefix] = orbit
             log_inline(f"🎯 Selected orbits: {len(selected_orbits)}/{len(metadata_by_tile)} complete")
         except Exception as e:
             failures.append((tile_prefix, str(e)))

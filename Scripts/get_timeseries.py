@@ -43,42 +43,52 @@ for job in timeseries_jobs:
 
     # === Core workflow steps ===
     tiles = generate_safe_tiles(
-        job.bbox, 
-        job.resolution
+        aoi=job.bbox,
+        resolution=job.resolution
     )
     
     tile_metadata = discover_metadata_for_tiles(
-        tiles, 
-        job, 
-        config, 
-        paths, 
+        paths=paths,
+        tiles=tiles,
+        profile=job,
+        config=config,
         evalscript=discover_evalscript
     )
 
     selected_orbits = select_orbits_for_tiles(
-        metadata_by_tile=tile_metadata, 
-        strategy=job.orbit_selection_strategy,
-        output_dir=paths["metadata"]
+        paths=paths,
+        metadata_by_tile=tile_metadata,
+        profile=job
     )
     
     tile_info, failed_tiles = download_orbits_for_tiles(
-        tiles, 
-        selected_orbits, 
-        job, 
-        config, 
-        paths, 
+        paths=paths,
+        tiles=tiles,
+        selected_orbits=selected_orbits,
+        profile=job,
+        config=config,
         evalscript=evalscript_raw_bands
     )
     
-    stitched = stitch_raw_tile_data(
-        tile_info=tile_info,
-        input_dir=paths["raw_tiles"],
-        paths=paths 
+    stitched_image = stitch_raw_tile_data(
+        paths=paths,
+        tile_info=tile_info
     )
     
-    if stitched is not None and tile_info:
-        generate_ndvi_products(stitched, tile_info, paths)
-        generate_true_color_products(stitched, tile_info, paths)
+    if stitched_image is not None and tile_info:
+        
+        generate_ndvi_products(
+            paths=paths,
+            tile_info=tile_info,
+            stitched_image=stitched_image
+        )
+
+        generate_true_color_products(
+            paths=paths,
+            tile_info=tile_info,
+            stitched_image=stitched_image
+        )
+        
     else:
         from utils.logging_utils import log_warning
         log_warning("Skipping NDVI and true-color generation — no stitched data available.")

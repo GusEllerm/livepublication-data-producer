@@ -26,41 +26,46 @@ paths = prepare_job_output_dirs(profile)
 
 # === create a set of 'safe' tiles (e.g. tiles which conform to API reqs) ===
 tiles = generate_safe_tiles(
-    profile.bbox,
-    resolution=profile.resolution,
-    max_dim=2500,
-    buffer=0.95 
+    aoi=profile.bbox,  
+    resolution=profile.resolution
 )
-tiles = [tiles[0]]  # For testing, only use the first tile
 
 tile_metadata = discover_metadata_for_tiles(
+    paths=paths,
     tiles=tiles,
     profile=profile,
     config=config,
-    paths=paths,
     evalscript=discover_evalscript
 )
 
 selected_orbits = select_orbits_for_tiles(
+    paths=paths,
     metadata_by_tile=tile_metadata,
-    strategy=profile.orbit_selection_strategy,
-    output_dir=paths["metadata"]
+    profile=profile,
 )
 
 tile_info, failed_tiles = download_orbits_for_tiles(
+    paths=paths,
     tiles=tiles,
     selected_orbits=selected_orbits,
     profile=profile,
     config=config,
     evalscript=evalscript_raw_bands,
-    paths=paths
 )
 
 stitched_image = stitch_raw_tile_data(
+    paths=paths,
     tile_info=tile_info,
-    input_dir=paths["raw_tiles"],
-    paths=paths
 )
 
-generate_ndvi_products(stitched_image, tile_info, paths)
-generate_true_color_products(stitched_image, tile_info, paths)
+generate_ndvi_products(
+    paths=paths,
+    tile_info=tile_info,
+    stitched_image=stitched_image
+)
+
+generate_true_color_products(
+    paths=paths,
+    tile_info=tile_info,
+    stitched_image=stitched_image
+)

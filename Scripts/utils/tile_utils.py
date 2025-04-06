@@ -1,13 +1,18 @@
 import os
 import json
-from sentinelhub import BBox, CRS
+from sentinelhub import BBox, CRS, SHConfig
 from sentinelhub import SentinelHubRequest, MimeType, DataCollection, bbox_to_dimensions
 import numpy as np
 from utils.logging_utils import log_step, log_success, log_warning
 from utils.job_utils import get_tile_prefix
 from utils.logging_utils import log_inline
 
-def generate_safe_tiles(aoi, resolution=10, max_dim=2500, buffer=0.95):
+def generate_safe_tiles(
+        aoi: BBox, 
+        resolution: int = 10, 
+        max_dim: int = 2500, 
+        buffer: float = 0.95
+    ) -> list[BBox]:
     """
     Generate 'safe' tiles for Sentinel Hub API requests.
     Args:
@@ -36,18 +41,28 @@ def generate_safe_tiles(aoi, resolution=10, max_dim=2500, buffer=0.95):
     log_success(f"Generated {len(tiles)} tiles.")
     return tiles
 
-def download_safe_tiles(tiles, time_interval, config, evalscript,
-                        output_dir="./tiles", prefix="tile"):
+def download_safe_tiles(
+        paths: dict, 
+        tiles: list[BBox], 
+        time_interval: tuple, 
+        prefix: str,
+        config: SHConfig, 
+        evalscript: str
+    ) -> tuple[list[tuple], list[tuple]]:
     """
     Download Sentinel Hub tiles using the provided evalscript.
     Args:
+        paths (dict): Dictionary of job output paths.
         tiles (list): List of BBox objects representing the tiles.
         time_interval (tuple): Time interval for the request.
+        prefix (str): Prefix for the output filenames.
         config (dict): Configuration for Sentinel Hub.
+        evalscript (str): Evalscript to use for downloading imagery.
     Returns:
         list: List of tuples containing tile filenames and their bounding boxes.
         list: List of failed tiles.
     """
+    output_dir = paths["raw_tiles"]
     os.makedirs(output_dir, exist_ok=True)
     tile_info = []
     failed_tiles = []
@@ -87,18 +102,23 @@ def download_safe_tiles(tiles, time_interval, config, evalscript,
 
     return tile_info, failed_tiles
 
-def download_orbits_for_tiles(tiles, selected_orbits, profile, config, paths, evalscript):
+def download_orbits_for_tiles(
+        paths: dict, 
+        tiles: list[BBox], 
+        selected_orbits: dict, 
+        profile: "DataAcquisitionConfig", 
+        config: SHConfig, 
+        evalscript: str
+    ) -> tuple[list[tuple], list[tuple]]:
     """
     Download imagery for each tile using its selected orbit.
-
     Args:
+        paths (dict): Dictionary of job output paths.
         tiles (list): List of BBox tile geometries.
         selected_orbits (dict): Mapping of tile_prefix -> selected orbit metadata.
         profile: Profile object with region information.
         config: Sentinel Hub config object.
         evalscript (str): Evalscript to use for downloading imagery.
-        paths (dict): Dictionary of job output paths.
-
     Returns:
         tuple: (tile_info, failed_tiles)
     """
@@ -123,12 +143,12 @@ def download_orbits_for_tiles(tiles, selected_orbits, profile, config, paths, ev
             continue
 
         tile_info, failed_tiles = download_safe_tiles(
+            paths=paths,
             tiles=[tile],
             time_interval=time_interval,
+            prefix=tile_prefix,
             config=config,
-            evalscript=evalscript,
-            output_dir=paths["raw_tiles"],
-            prefix=tile_prefix
+            evalscript=evalscript
         )
 
         tile_info_all.extend(tile_info)
@@ -142,66 +162,16 @@ def download_orbits_for_tiles(tiles, selected_orbits, profile, config, paths, ev
 
     return tile_info_all, failed_tiles_all
 
-def download_selected_orbits(
-    tiles: list[BBox],
-    profile,
-    config,
-    evalscript: str,
-    paths: dict
-):
-    """
-    Download Sentinel Hub tiles using pre-selected orbits for each sub-bbox tile.
 
-    Args:
-        tiles (list): List of BBox tile geometries.
-        profile: Profile object containing region and strategy info.
-        config: Sentinel Hub config object.
-        evalscript (str): Evalscript to use for downloading imagery.
-        paths (dict): Dictionary of job paths.
-    
-    Returns:
-        list: List of tuples containing tile filenames and their bounding boxes.
-        list: List of failed tiles.
-    """
-    tile_info_all = []
-    failed_tiles_all = []
-
-    for idx, tile in enumerate(tiles):
-        prefix = f"{profile.region.lower().replace(' ', '_')}_tile{idx}"
-        orbit_json_path = os.path.join(paths["metadata"], f"{prefix}_selected_orbit.json")
-
-        try:
-            with open(orbit_json_path, "r") as f:
-                orbit_data = json.load(f)
-            orbit_date = orbit_data["orbit_date"]
-        except Exception as e:
-            log_warning(f"Skipping tile {idx} — could not load orbit metadata: {e}")
-            failed_tiles_all.append((idx, tile))
-            continue
-
-        time_interval = (orbit_date, orbit_date)
-        tile_info, failed_tiles = download_safe_tiles(
-            tiles=[tile],
-            time_interval=time_interval,
-            config=config,
-            evalscript=evalscript,
-            output_dir=paths["raw_tiles"],
-            prefix=prefix
-        )
-
-        tile_info_all.extend(tile_info)
-        failed_tiles_all.extend(failed_tiles)
-
-    return tile_info_all, failed_tiles_all
-
-def convert_tiles_to_bboxes(tile_coords_list: list, crs: CRS = CRS.WGS84) -> list:
+def convert_tiles_to_bboxes(
+        tile_coords_list: list, 
+        crs: CRS = CRS.WGS84
+    ) -> list:
     """
     Convert a list of tile coordinate tuples to BBox objects.
- 
     Args:
         tile_coords_list (list): List of [min_lon, min_lat, max_lon, max_lat] coordinates.
         crs (CRS): Coordinate reference system. Defaults to WGS84.
- 
     Returns:
         list: List of BBox objects.
     """
