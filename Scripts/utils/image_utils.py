@@ -8,7 +8,6 @@ from rasterio.crs import CRS as RioCRS
 from utils.job_utils import get_stitched_array_path
 from utils.logging_utils import log_step, log_success
 
-
 def stitch_tiles(
         tile_dir: str, 
         tile_coords: list[tuple[str, BBox]]
@@ -58,7 +57,6 @@ def stitch_tiles(
     full_image = np.concatenate(final_rows, axis=0)
     return full_image
 
-
 def compute_stitched_bbox(
         tile_info: list[tuple[str, BBox]]
     ) -> tuple[float, float, float, float]:
@@ -76,7 +74,6 @@ def compute_stitched_bbox(
     max_lat = max(b.max_y for b in all_bboxes)
     return (min_lon, min_lat, max_lon, max_lat)
 
-
 def compute_ndvi(
         stitched_array
     ) -> np.ndarray:
@@ -91,7 +88,6 @@ def compute_ndvi(
     nir = stitched_array[..., 3]
     ndvi = (nir - red) / (nir + red + 1e-6)
     return np.clip(ndvi, -1, 1)
-
 
 def rasterize_true_color(
         stitched_array

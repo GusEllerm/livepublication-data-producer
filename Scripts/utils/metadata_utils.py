@@ -102,7 +102,6 @@ def select_best_orbit(
     else:
         raise ValueError(f"Unknown orbit selection strategy: {strategy}")
     
-
 def write_selected_orbit(
         paths: dict, 
         orbit_data: dict, 

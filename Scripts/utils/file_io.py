@@ -37,7 +37,6 @@ def save_geotiff(array, output_path, bbox, crs, dtype=np.float32):
     ) as dst:
         dst.write(array)
 
-
 def clean_all_outputs(base_path: str = "."):
     """
     Remove all tiles_* directories and output files in the specified base path.

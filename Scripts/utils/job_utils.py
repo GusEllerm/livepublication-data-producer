@@ -10,11 +10,9 @@ def generate_job_id(
     """
     Generate a human-readable job ID from a DataAcquisitionConfig object.
     Optionally override the time interval to customize the job ID.
-
     Args:
         config (DataAcquisitionConfig): The configuration object for a data acquisition job.
         interval (tuple, optional): Optional (start_date, end_date) to override default time_interval.
-
     Returns:
         str: A standardized job ID string.
     """
@@ -27,16 +25,13 @@ def generate_job_id(
         return f"{config.parent_job_id}/{base_id}"
     return base_id
 
-
 def get_job_output_paths(
         config: "DataAcquisitionConfig"
     ) -> dict:
     """
     Return a dictionary of standardized output paths based on the job ID.
-
     Args:
         config (DataAcquisitionConfig): The configuration object for a data acquisition job.
-
     Returns:
         dict: A dictionary of output paths keyed by content type.
     """
@@ -78,12 +73,10 @@ def archive_job_outputs(
     ) -> str:
     """
     Archive output files from a directory into a named or timestamped archive folder.
-
     Args:
         src_dir (str): Directory containing the files to archive.
         label (str): Optional label for the archive folder name.
         files_to_archive (list): List of filenames to archive.
-
     Returns:
         str: Path to the created archive folder.
     """
@@ -124,11 +117,9 @@ def get_tile_prefix(
     ) -> str:
     """
     Generate a consistent tile-specific prefix using the profile's region and tile index.
-
     Args:
         config (DataAcquisitionConfig): The data acquisition config with region info.
         idx (int): Index of the tile.
-
     Returns:
         str: A standardized prefix like 'canterbury_tile0'
     """
@@ -141,11 +132,9 @@ def get_orbit_metadata_path(
     ) -> str:
     """
     Construct the full file path for a tile's orbit metadata JSON.
- 
     Args:
         paths (dict): Dictionary of output paths from prepare_job_output_dirs.
         tile_prefix (str): The tile-specific prefix string.
- 
     Returns:
         str: Full file path to the orbit metadata file.
     """
@@ -156,10 +145,8 @@ def get_stitched_array_path(
     ) -> str:
     """
     Construct the full file path for the stitched raw bands .npy output.
-
     Args:
         paths (dict): Dictionary of output paths from prepare_job_output_dirs.
-
     Returns:
         str: Full file path to the stitched .npy array.
     """
