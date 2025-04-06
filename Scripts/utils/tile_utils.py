@@ -87,7 +87,7 @@ def download_safe_tiles(tiles, time_interval, config, evalscript,
 
     return tile_info, failed_tiles
 
-def download_orbits_for_tiles(tiles, selected_orbits, profile, config, evalscript, paths):
+def download_orbits_for_tiles(tiles, selected_orbits, profile, config, paths, evalscript):
     """
     Download imagery for each tile using its selected orbit.
 
@@ -112,15 +112,15 @@ def download_orbits_for_tiles(tiles, selected_orbits, profile, config, evalscrip
     log_inline(f"⏬ Downloading tiles: 0/{len(tiles)} complete")
     for idx, tile in enumerate(tiles):
         tile_prefix = get_tile_prefix(profile, idx)
-        orbit_data = selected_orbits.get(tile_prefix)
-
-        if not orbit_data:
-            log_warning(f"Skipping tile {tile_prefix} — no selected orbit found.")
+        try:
+            orbit_data = selected_orbits[tile_prefix]
+            orbit_date = orbit_data["orbit_date"]
+            time_interval = (orbit_date, orbit_date)
+        except KeyError:
+            # print()  # Ensure clean break from inline log
+            # log_warning(f"⚠️ Skipping tile {tile_prefix} — no selected orbit found.")
             failed_tiles_all.append((idx, tile))
             continue
-
-        orbit_date = orbit_data["orbit_date"]
-        time_interval = (orbit_date, orbit_date)
 
         tile_info, failed_tiles = download_safe_tiles(
             tiles=[tile],
@@ -136,7 +136,10 @@ def download_orbits_for_tiles(tiles, selected_orbits, profile, config, evalscrip
 
         log_inline(f"⏬ Downloading tiles: {len(tile_info_all)}/{len(tiles)} complete")
 
-    print()  # newline after inline output
+    if len(failed_tiles_all) == len(tiles):
+        print()  # Ensure clean break from inline log
+        log_warning(f"All tiles failed for {tile_prefix}. Probably no orbits for day available.")
+
     return tile_info_all, failed_tiles_all
 
 def download_selected_orbits(

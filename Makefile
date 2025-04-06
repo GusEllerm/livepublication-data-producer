@@ -1,6 +1,9 @@
 run:
 	make -C Scripts run
 
+timeseries:
+	make -C Scripts timeseries
+
 view:
 	make -C Scripts view
 

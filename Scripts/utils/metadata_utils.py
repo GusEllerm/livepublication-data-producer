@@ -80,7 +80,7 @@ def select_best_orbit(metadata: dict, strategy: str = "least_cloud") -> dict:
     """
     orbits = metadata.get("orbits", [])
     if not orbits:
-        raise ValueError("No orbits found in metadata.")
+        raise ValueError("No orbits found in metadata")
 
     if strategy == "least_cloud":
         # Compute average cloud coverage for each orbit
@@ -170,6 +170,7 @@ def select_orbits_for_tiles(metadata_by_tile: dict, strategy: str, output_dir: s
     """
     log_step(f"🔎 Selecting best orbits using strategy: {strategy}")
     selected_orbits = {}
+    failures = []
 
     log_inline(f"🎯 Selecting orbits: 0/{len(metadata_by_tile)} tiles complete")
     for tile_prefix, metadata in metadata_by_tile.items():
@@ -179,7 +180,17 @@ def select_orbits_for_tiles(metadata_by_tile: dict, strategy: str, output_dir: s
             selected_orbits[tile_prefix] = selected
             log_inline(f"🎯 Selected orbits: {len(selected_orbits)}/{len(metadata_by_tile)} complete")
         except Exception as e:
-            log_warning(f"Failed to select orbit for {tile_prefix}: {e}")
+            failures.append((tile_prefix, str(e)))
 
     print() # for newline after inline logging
+
+    if failures:
+        error_messages = [msg for _, msg in failures]
+        unique_errors = set(error_messages)
+        if len(unique_errors) == 1:
+            log_warning(f"{list(unique_errors)[0]} for {len(failures)} tiles. Orbit selection skipped.")
+        else:
+            for tile_prefix, msg in failures:
+                log_warning(f"Failed to select orbit for {tile_prefix}: {msg}")
+
     return selected_orbits

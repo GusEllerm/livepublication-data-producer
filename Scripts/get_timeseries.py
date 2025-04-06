@@ -1,37 +1,29 @@
 import json
-import os
-from datetime import date
-from utils import (
-    generate_time_intervals,
-    format_time_interval_prefix,
-    generate_safe_tiles,
-    download_safe_tiles,
-    stitch_tiles,
-    compute_ndvi,
-    rasterize_true_color,
-    save_geotiff,
-    plot_image,
-    compute_stitched_bbox
-)
-from profiles import test_timeseries_profile, evalscript_raw_bands
-from sentinelhub import SHConfig, CRS
-from rasterio.crs import CRS as RioCRS
+import copy
+from utils import generate_time_intervals
+from utils.time_interval_utils import create_timeseries_jobs
 
-with open("secrets.json") as f:
-    secrets = json.load(f)
+from profiles import weekly_ndvi_test
+from evalscripts import discover_evalscript, evalscript_raw_bands
+from sentinelhub import SHConfig
 
-# === Load profile ===
-profile = test_timeseries_profile
+from utils.job_utils import generate_job_id, prepare_job_output_dirs
+from utils.tile_utils import generate_safe_tiles, download_orbits_for_tiles
+from utils.metadata_utils import discover_metadata_for_tiles, select_orbits_for_tiles
+from utils.image_utils import stitch_raw_tile_data, generate_ndvi_products, generate_true_color_products
+
+profile = weekly_ndvi_test
 start_date, end_date = profile.time_interval
 
 if profile.time_series_mode:
-    intervals = generate_time_intervals(start_date, end_date, profile.time_series_mode)
+    intervals = generate_time_intervals(profile)
 elif profile.time_series_custom_intervals:
     intervals = profile.time_series_custom_intervals
 else:
     raise ValueError("Profile must specify a time_series_mode or custom intervals.")
 
-print(f"📆 Time series configured: {len(intervals)} intervals from {start_date} to {end_date}")
+with open("secrets.json") as f:
+    secrets = json.load(f)
 
 config = SHConfig()
 config.sh_client_id = secrets["sh_client_id"]
@@ -39,50 +31,54 @@ config.sh_client_secret = secrets["sh_client_secret"]
 config.sh_base_url = secrets["sh_base_url"]
 config.sh_token_url = secrets["sh_token_url"]
 
-# === Output base directory ===
-base_output_dir = f"./tiles_{profile.region.lower().replace(' ', '_')}"
-os.makedirs(base_output_dir, exist_ok=True)
+print(f"📆 Time series configured: {len(intervals)} intervals from {start_date} to {end_date}")
 
-# === New implementation for time series processing ===
-if profile.time_series_mode or profile.time_series_custom_intervals:
-    for start, end in intervals:
-        time_prefix = format_time_interval_prefix(start, end)
-        output_dir = os.path.join(base_output_dir, time_prefix)
-        os.makedirs(output_dir, exist_ok=True)
+timeseries_jobs = create_timeseries_jobs(profile)
 
-        # === Create a set of 'safe' tiles (e.g. tiles which conform to API reqs) ===
-        tiles = generate_safe_tiles(
-            profile.bbox, 
-            resolution=profile.resolution,
-            max_dim=2500,
-            buffer=0.95 if not profile.tile_size_deg else 1.0)
-        
-        print(f"⚙️  Generated {len(tiles)} tiles for interval {time_prefix}.")
-        print(f"⬇️  Downloading {len(tiles)} tiles for interval {time_prefix} ({start} to {end})...")
+for job in timeseries_jobs:
+    print(f"\n⏳ Processing interval: {job.time_interval[0]} to {job.time_interval[1]}")
 
-        # === Download raw band files for tiles ===
-        tile_info, failed = download_safe_tiles(
-            tiles=tiles,
-            time_interval=(start, end),
-            config=config,
-            evalscript=evalscript_raw_bands,
-            output_dir=output_dir,
-            prefix=time_prefix
-        )
+    # Prepare output directories
+    paths = prepare_job_output_dirs(job)
 
-        print(f"📦 Downloaded {len(tile_info)} tiles; {len(failed)} failed.")
+    # === Core workflow steps ===
+    tiles = generate_safe_tiles(
+        job.bbox, 
+        job.resolution
+    )
+    
+    tile_metadata = discover_metadata_for_tiles(
+        tiles, 
+        job, 
+        config, 
+        paths, 
+        evalscript=discover_evalscript
+    )
 
-        if not tile_info:
-            print(f"❌ No tiles downloaded for {time_prefix}")
-            continue
-
-        stitched_image = stitch_tiles(output_dir, tile_info)
-        ndvi = compute_ndvi(stitched_image)
-        rgb = rasterize_true_color(stitched_image)
-
-        bbox = compute_stitched_bbox(tile_info)
-        crs = RioCRS.from_epsg(4326)
-
-        save_geotiff(ndvi, os.path.join(output_dir, "ndvi.tif"), bbox, crs)
-        save_geotiff(rgb, os.path.join(output_dir, "true_color.tif"), bbox, crs)
-        print(f"✅ Completed processing for interval {time_prefix}. NDVI and true color outputs saved to: {output_dir}")
+    selected_orbits = select_orbits_for_tiles(
+        metadata_by_tile=tile_metadata, 
+        strategy=job.orbit_selection_strategy,
+        output_dir=paths["metadata"]
+    )
+    
+    tile_info, failed_tiles = download_orbits_for_tiles(
+        tiles, 
+        selected_orbits, 
+        job, 
+        config, 
+        paths, 
+        evalscript=evalscript_raw_bands
+    )
+    
+    stitched = stitch_raw_tile_data(
+        tile_info=tile_info,
+        input_dir=paths["raw_tiles"],
+        paths=paths 
+    )
+    
+    if stitched is not None and tile_info:
+        generate_ndvi_products(stitched, tile_info, paths)
+        generate_true_color_products(stitched, tile_info, paths)
+    else:
+        from utils.logging_utils import log_warning
+        log_warning("Skipping NDVI and true-color generation — no stitched data available.")

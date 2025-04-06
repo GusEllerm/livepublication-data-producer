@@ -20,6 +20,7 @@ The **Data Producer** is Layer 1 of the LivePublication system. It automates sat
 - **GeoTIFF output**: Exports `.tif` images with full geospatial metadata
 - **Archived result viewing**: View NDVI and true-color outputs from any previously archived run
 - **Interactive visualisation tool with side-by-side NDVI / RGB view**
+- **Timeseries job support**: Automatically splits profile into per-interval sub-jobs using `time_series_mode`
 - **Full CLI workflow**: Reproducible data generation with Makefile commands
 - **Unit tests**: Lightweight test suite for all core utilities
 
@@ -63,8 +64,6 @@ These outputs can then be viewed using:
 make view archive=veg_index_april5
 ```
 
-> ⚠️ **Note:** The `get_timeseries.py` workflow has **not yet been updated** to use the new ORBIT-based system. It currently uses the legacy acquisition method and may not generate detailed provenance metadata.
-
 ---
 
 ## 🧠 Orbit Selection Strategies
@@ -87,7 +86,7 @@ Unimplemented strategies will fail gracefully.
 ```
 Scripts/
 ├── get_data.py             # Run once for current profile (single orbit)
-├── get_timeseries.py       # Run over time intervals (legacy logic)
+├── get_timeseries.py       # Generate data across a time series using sub-jobs
 ├── profiles.py             # AOIs and config definitions
 ├── utils/
 │   ├── __init__.py
@@ -118,6 +117,19 @@ outputs/<job_id>/
 ├── stitched/        # Stitched `.npy` bands
 ├── imagery/         # NDVI / RGB `.tif` and `.png`
 └── metadata/        # Orbit metadata JSON
+```
+
+For timeseries jobs, outputs are structured like:
+
+```
+outputs/<parent_job_id>/
+├── <sub_job_id_1>/
+│   ├── raw_tiles/
+│   ├── stitched/
+│   ├── imagery/
+│   └── metadata/
+└── <sub_job_id_2>/
+    └── ...
 ```
 
 Archived results are saved in `archive/<label or timestamp>/`.

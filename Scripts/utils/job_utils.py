@@ -3,20 +3,26 @@ import shutil
 from datetime import datetime
 from utils.logging_utils import log_step, log_block
 
-def generate_job_id(config: "DataAcquisitionConfig") -> str:
+def generate_job_id(config: "DataAcquisitionConfig", interval: tuple = None) -> str:
     """
     Generate a human-readable job ID from a DataAcquisitionConfig object.
+    Optionally override the time interval to customize the job ID.
 
     Args:
         config (DataAcquisitionConfig): The configuration object for a data acquisition job.
+        interval (tuple, optional): Optional (start_date, end_date) to override default time_interval.
 
     Returns:
         str: A standardized job ID string.
     """
-    start = config.time_interval[0].strftime('%Y%m%d')
-    end = config.time_interval[1].strftime('%Y%m%d')
+    start_date, end_date = interval if interval else config.time_interval
+    start = start_date.strftime('%Y%m%d')
+    end = end_date.strftime('%Y%m%d')
     region = config.region.lower().replace(" ", "_")
-    return f"{region}__{start}_{end}"
+    base_id = f"{region}__{start}_{end}"
+    if hasattr(config, "parent_job_id") and config.parent_job_id:
+        return f"{config.parent_job_id}/{base_id}"
+    return base_id
 
 
 def get_job_output_paths(config: "DataAcquisitionConfig") -> dict:

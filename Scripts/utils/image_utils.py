@@ -115,21 +115,25 @@ def stitch_raw_tile_data(tile_info: list[tuple[str, BBox]], input_dir: str, outp
     Returns:
         np.ndarray: The stitched image array.
     """
-    if not tile_info:
-        from utils.logging_utils import log_warning
-        log_warning("⚠️ No tiles available to stitch or process.")
+    from utils.logging_utils import log_warning
+    try:
+        if not tile_info:
+            raise ValueError("No tiles available to stitch or process.")
+
+        if output_path is None:
+            if paths is None:
+                raise ValueError("Either output_path or paths must be provided.")
+            output_path = get_stitched_array_path(paths)
+
+        log_step("🧵 Stitching tiles...")
+        stitched_array = stitch_tiles(input_dir, tile_info)
+        np.save(output_path, stitched_array)
+        log_success(f"Stitched tiles saved to {output_path}")
+        return stitched_array
+
+    except Exception as e:
+        log_warning(f"Stitching skipped: {e}")
         return None
-
-    if output_path is None:
-        if paths is None:
-            raise ValueError("Either output_path or paths must be provided.")
-        output_path = get_stitched_array_path(paths)
-
-    log_step("🧵 Stitching tiles...")
-    stitched_array = stitch_tiles(input_dir, tile_info)
-    np.save(output_path, stitched_array)
-    log_success(f"Stitched tiles saved to {output_path}")
-    return stitched_array
 
 def generate_ndvi_products(stitched_image: np.ndarray, tile_info: list[tuple[str, BBox]], paths: dict):
     """
@@ -140,6 +144,10 @@ def generate_ndvi_products(stitched_image: np.ndarray, tile_info: list[tuple[str
         tile_info (list): List of (filename, BBox) tuples.
         paths (dict): Dictionary of output directory paths.
     """
+    if stitched_image is None or tile_info is None or len(tile_info) == 0:
+        from utils.logging_utils import log_warning
+        log_warning("⚠️ Skipping NDVI generation: no stitched image or tile info provided.")
+        return
     log_step("🧪 Generating NDVI imagery...")
     ndvi = compute_ndvi(stitched_image)
 
@@ -161,6 +169,10 @@ def generate_true_color_products(stitched_image: np.ndarray, tile_info: list[tup
         tile_info (list): List of (filename, BBox) tuples.
         paths (dict): Dictionary of output directory paths.
     """
+    if stitched_image is None or tile_info is None or len(tile_info) == 0:
+        from utils.logging_utils import log_warning
+        log_warning("⚠️ Skipping true-color generation: no stitched image or tile info provided.")
+        return
     log_step("🎨 Generating true-color imagery...")
     rgb = rasterize_true_color(stitched_image)
 
