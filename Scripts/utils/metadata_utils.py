@@ -204,3 +204,17 @@ def select_orbits_for_tiles(
                 log_warning(f"Failed to select orbit for {tile_prefix}: {msg}")
 
     return selected_orbits
+
+
+def has_valid_orbits(metadata_by_tile: dict) -> bool:
+    """
+    Check if any tile has valid orbit metadata.
+    Args:
+        metadata_by_tile (dict): Mapping of tile_prefix -> metadata dict.
+    Returns:
+        bool: True if any tile has valid orbit metadata, False otherwise.
+    """
+    return any(
+        metadata.get("orbits", []) 
+        for metadata in metadata_by_tile.values()
+    )

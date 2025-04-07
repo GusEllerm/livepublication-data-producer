@@ -1,85 +1,59 @@
 import argparse
 import numpy as np
+import json
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import os
 import matplotlib.gridspec as gridspec
+import zipfile
+import shutil
+import atexit
+import glob
 
 # === Load parser and arguments ===
 parser = argparse.ArgumentParser()
 parser.add_argument("--archive", type=str, default=None, help="Optional archive folder name")
 args = parser.parse_args()
 
-# Determine input directory
-import glob
-if args.archive:
-    base_path = os.path.join("archive", args.archive)
-else:
+temp_extract_dir = None
+
+def extract_archive_if_needed(archive_name):
+    global temp_extract_dir
+    if archive_name:
+        archive_path = os.path.join("archive", archive_name)
+        if os.path.isfile(archive_path) and archive_path.endswith(".zip"):
+            # Create a temporary extraction directory within archive/
+            temp_extract_dir = os.path.join("archive", archive_name.replace(".zip", ""))
+            os.makedirs(temp_extract_dir, exist_ok=True)
+
+            print(archive_path)
+            # Extract the zip file to the temporary directory
+            with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_extract_dir)
+                print(f"✓ Extracted {archive_path} to {temp_extract_dir}")
+
+            print(f"📦 Extracted archive '{archive_name}' to temporary location for viewing.")
+
+            def cleanup_temp_dir():
+                shutil.rmtree(temp_extract_dir, ignore_errors=True)
+            atexit.register(cleanup_temp_dir)
+            return temp_extract_dir
+        else:
+            return archive_path
+    return None
+
+base_path = extract_archive_if_needed(args.archive)
+
+if base_path is None:
     output_dirs = sorted(glob.glob("outputs/*/"), key=os.path.getmtime, reverse=True)
     if not output_dirs:
         raise FileNotFoundError("No output directories found in 'outputs/'.")
     base_path = output_dirs[0].rstrip("/")
 
-# Get the paths for NDVI and RGB images
-import matplotlib.image as mpimg
-
-if args.archive:
-    ndvi_path = os.path.join(base_path, "ndvi.png")
-    rgb_path = os.path.join(base_path, "true_color.png")
-else:
-    ndvi_path = os.path.join(base_path, "imagery", "ndvi.png")
-    rgb_path = os.path.join(base_path, "imagery", "true_color.png")
-
-ndvi = mpimg.imread(ndvi_path)
-rgb = mpimg.imread(rgb_path)
-
-# Set up the plot
-fig = plt.figure(figsize=(12, 8))
-gs = gridspec.GridSpec(2, 2, height_ratios=[3, 1])
-
-ax1 = fig.add_subplot(gs[0, 0])
-ax2 = fig.add_subplot(gs[0, 1])
-
-syncing = {"flag": False}  # Use dict to maintain mutability across scope
-
-def on_axis_change(event_ax):
-    if syncing["flag"]:
-        return
-    syncing["flag"] = True
-    try:
-        xlim = event_ax.get_xlim()
-        ylim = event_ax.get_ylim()
-        for ax in (ax1, ax2):
-            if ax != event_ax:
-                ax.set_xlim(xlim)
-                ax.set_ylim(ylim)
-    finally:
-        syncing["flag"] = False
-
-ax1.callbacks.connect('xlim_changed', lambda ax: on_axis_change(ax1))
-ax1.callbacks.connect('ylim_changed', lambda ax: on_axis_change(ax1))
-ax2.callbacks.connect('xlim_changed', lambda ax: on_axis_change(ax2))
-ax2.callbacks.connect('ylim_changed', lambda ax: on_axis_change(ax2))
-
-ax_text = fig.add_subplot(gs[1, :])
-
-ndvi_im = ax1.imshow(ndvi, cmap='RdYlGn', vmin=-1, vmax=1)
-rgb_im = ax2.imshow(rgb)
-
-plt.title("Press 't' to toggle NDVI / True Color")
-ax1.axis('off')
-ax2.axis('off')
-
-# --- If outputs structure, try loading orbit metadata
-if not args.archive:
-    import json
-    import glob
-
-    metadata_dir = os.path.join(base_path, "metadata")
-    selected_orbits = glob.glob(os.path.join(metadata_dir, "*_selected_orbit.json"))
-
+def format_metadata_summary(selected_orbits):
+    metadata_summary = ""
     if selected_orbits:
-        product_entries = {}  # key: product_id, value: cloud_coverage
+        product_entries = {}
         strategies = set()
         orbit_dates = set()
 
@@ -103,19 +77,101 @@ if not args.archive:
 
         avg_cloud = sum(product_entries.values()) / len(product_entries) if product_entries else 0.0
         meta_lines.append(f"\nAverage Cloud Cover: {avg_cloud:.2f}%")
+        metadata_summary = "\n".join(meta_lines)
+    return metadata_summary
 
-        meta_summary = "\n".join(meta_lines)
+def load_timeseries_frames(base_path):
+    timeseries_frames = []
+    subdirs = sorted([
+        os.path.join(base_path, d) for d in os.listdir(base_path)
+        if os.path.isdir(os.path.join(base_path, d))
+    ])
+    for subdir in subdirs:
+        ndvi_path = os.path.join(subdir, "imagery", "ndvi.png")
+        rgb_path = os.path.join(subdir, "imagery", "true_color.png")
+        metadata_dir = os.path.join(subdir, "metadata")
+        selected_orbits = glob.glob(os.path.join(metadata_dir, "*_selected_orbit.json"))
 
-        ax_text.axis("off")
-        ax_text.text(0, 1, meta_summary, fontsize=9, color='black',
+        if os.path.exists(ndvi_path) and os.path.exists(rgb_path):
+            ndvi = mpimg.imread(ndvi_path)
+            rgb = mpimg.imread(rgb_path)
+            meta_summary = format_metadata_summary(selected_orbits)
+            label = os.path.basename(subdir)
+            timeseries_frames.append({
+                "ndvi": ndvi,
+                "rgb": rgb,
+                "metadata": meta_summary,
+                "label": label
+            })
+    return timeseries_frames
+
+def load_single_frame(base_path):
+    ndvi_path = os.path.join(base_path, "imagery", "ndvi.png")
+    rgb_path = os.path.join(base_path, "imagery", "true_color.png")
+    metadata_dir = os.path.join(base_path, "metadata")
+    selected_orbits = glob.glob(os.path.join(metadata_dir, "*_selected_orbit.json"))
+
+    ndvi = mpimg.imread(ndvi_path)
+    rgb = mpimg.imread(rgb_path)
+    metadata_summary = format_metadata_summary(selected_orbits)
+    
+    return ndvi, rgb, metadata_summary
+
+# Determine if this is a timeseries job (has sub-job folders)
+is_timeseries = any(
+    os.path.isdir(os.path.join(base_path, name)) and 
+    os.path.isdir(os.path.join(base_path, name, "imagery"))
+    for name in os.listdir(base_path)
+)
+
+# Load data
+timeseries_frames = load_timeseries_frames(base_path) if is_timeseries else []
+ndvi, rgb, metadata_summary = load_single_frame(base_path) if not is_timeseries else (None, None, None)
+
+def setup_figure():
+    fig = plt.figure(figsize=(12, 8))
+    gs = gridspec.GridSpec(2, 2, height_ratios=[3, 1])
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax_text = fig.add_subplot(gs[1, :])
+    ax_text.axis("off")
+    return fig, ax1, ax2, ax_text
+
+fig, ax1, ax2, ax_text = setup_figure()
+frame_idx = [0]
+
+def draw_frame(idx):
+    ax1.clear()
+    ax2.clear()
+    ax_text.clear()
+    ax_text.axis("off")
+    ax1.axis("off")
+    ax2.axis("off")
+
+    if is_timeseries:
+        frame = timeseries_frames[idx]
+        ax1.imshow(frame["ndvi"], cmap='RdYlGn', vmin=-1, vmax=1)
+        ax2.imshow(frame["rgb"])
+        ax_text.text(0, 1, frame["metadata"], fontsize=9, color='black',
+                     verticalalignment='top', family='monospace')
+        fig.suptitle(f"Frame {idx+1}/{len(timeseries_frames)} — {frame['label']}")
+    else:
+        ax1.imshow(ndvi, cmap='RdYlGn', vmin=-1, vmax=1)
+        ax2.imshow(rgb)
+        ax_text.text(0, 1, metadata_summary, fontsize=9, color='black',
                      verticalalignment='top', family='monospace')
 
-# Keyboard event to toggle
-def toggle(event):
-    if event.key == 't':
-        ndvi_im.set_visible(not ndvi_im.get_visible())
-        rgb_im.set_visible(not rgb_im.get_visible())
-        fig.canvas.draw()
+    fig.canvas.draw_idle()
+
+def on_key(event):
+    if not is_timeseries:
+        return
+    if event.key == 'right':
+        frame_idx[0] = min(frame_idx[0] + 1, len(timeseries_frames) - 1)
+        draw_frame(frame_idx[0])
+    elif event.key == 'left':
+        frame_idx[0] = max(frame_idx[0] - 1, 0)
+        draw_frame(frame_idx[0])
 
 def on_scroll(event):
     base_scale = 1.2
@@ -128,16 +184,10 @@ def on_scroll(event):
     xdata = event.xdata
     ydata = event.ydata
 
-    if event.button == 'up':
-        scale_factor = 1 / base_scale
-    elif event.button == 'down':
-        scale_factor = base_scale
-    else:
-        scale_factor = 1
+    scale_factor = 1 / base_scale if event.button == 'up' else base_scale
 
     new_width = (cur_xlim[1] - cur_xlim[0]) * scale_factor
     new_height = (cur_ylim[1] - cur_ylim[0]) * scale_factor
-
     relx = (cur_xlim[1] - xdata) / (cur_xlim[1] - cur_xlim[0])
     rely = (cur_ylim[1] - ydata) / (cur_ylim[1] - cur_ylim[0])
 
@@ -147,6 +197,7 @@ def on_scroll(event):
 
     fig.canvas.draw_idle()
 
-fig.canvas.mpl_connect('key_press_event', toggle)
+fig.canvas.mpl_connect('key_press_event', on_key)
 fig.canvas.mpl_connect('scroll_event', on_scroll)
+draw_frame(0)
 plt.show()

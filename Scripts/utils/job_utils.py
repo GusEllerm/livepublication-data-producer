@@ -2,6 +2,7 @@ import os
 import shutil
 from datetime import datetime
 from utils.logging_utils import log_step, log_block
+import zipfile
 
 def generate_job_id(
         config: "DataAcquisitionConfig", 
@@ -29,7 +30,7 @@ def get_job_output_paths(
         config: "DataAcquisitionConfig"
     ) -> dict:
     """
-    Return a dictionary of standardized output paths based on the job ID.
+    Return a dictionary of standardised output paths based on the job ID.
     Args:
         config (DataAcquisitionConfig): The configuration object for a data acquisition job.
     Returns:
@@ -67,48 +68,57 @@ def prepare_job_output_dirs(
     return paths
 
 def archive_job_outputs(
-        src_dir: str = ".", 
-        label: str = None, 
-        files_to_archive=None
+        output_dir: str = None,
+        label: str = None
     ) -> str:
     """
-    Archive output files from a directory into a named or timestamped archive folder.
+    Archive the full contents of a job output directory into a zip file.
+
     Args:
-        src_dir (str): Directory containing the files to archive.
-        label (str): Optional label for the archive folder name.
-        files_to_archive (list): List of filenames to archive.
+        output_dir (str, optional): Path to the job's base output directory (e.g., outputs/<job_id>).
+                                    If None, archives the first job found in outputs/.
+        label (str): Optional name override for the archive file (no extension).
+
     Returns:
-        str: Path to the created archive folder.
+        str: Path to the created archive zip file.
     """
-    if files_to_archive is None:
-        files_to_archive = ["ndvi.tif", "ndvi.png", "true_color.tif", "true_color.png"]
+    if not output_dir:
+        output_base = "outputs"
+        jobs = sorted(
+            [os.path.join(output_base, d) for d in os.listdir(output_base)
+             if os.path.isdir(os.path.join(output_base, d))]
+        )
+        if not jobs:
+            print("❌ No job directories found in outputs/. Cannot archive.")
+            exit(1)
+        output_dir = jobs[0]
+        print(f"ℹ️  No output_dir specified. Defaulting to: {output_dir}")
+    else:
+        output_dir = os.path.abspath(output_dir)
+
+    if not os.path.exists(output_dir):
+        print(f"❌ Job directory '{output_dir}' does not exist.")
+        exit(1)
 
     archive_base = "archive"
     os.makedirs(archive_base, exist_ok=True)
 
-    archive_name = label if label else datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    archive_path = os.path.join(archive_base, archive_name)
+    archive_name = label if label else os.path.basename(output_dir)
+    archive_path = os.path.join(archive_base, f"{archive_name}.zip")
 
-    try:
-        os.makedirs(archive_path, exist_ok=False)
-        print(f"✅ Created archive folder: {archive_path}")
-    except FileExistsError:
-        print(f"❌ Archive folder '{archive_name}' already exists. Use a different name.")
+    if os.path.exists(archive_path):
+        print(f"❌ Archive '{archive_path}' already exists. Use a different label or remove the existing archive.")
         exit(1)
 
-    for fname in files_to_archive:
-        candidates = [
-            os.path.join(src_dir, fname),
-            os.path.join(src_dir, "imagery", fname)
-        ]
-        src_path = next((p for p in candidates if os.path.exists(p)), None)
-        if src_path:
-            shutil.copy(src_path, archive_path)
-            print(f"✓ Archived {src_path}")
-        else:
-            print(f"⚠️  Warning: {fname} not found in {src_dir} or imagery/, skipping.")
+    with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(output_dir):
+            for file in files:
+                full_path = os.path.join(root, file)
+                arcname = os.path.relpath(full_path, start=output_dir)
+                zipf.write(full_path, arcname)
+                print(f"✓ Archived {arcname}")
 
-    print(f"\n📦 Archive complete: {archive_path}")
+    print(f"\n📦 Archive created: {archive_path}")
     return archive_path
 
 def get_tile_prefix(

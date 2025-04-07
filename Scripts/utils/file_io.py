@@ -3,6 +3,7 @@ import shutil
 import rasterio
 import numpy as np
 from rasterio.transform import from_bounds
+from utils.logging_utils import log_warning
 
 def save_geotiff(array, output_path, bbox, crs, dtype=np.float32):
     """
@@ -77,3 +78,10 @@ def clean_all_outputs(base_path: str = "."):
             removed_files += 1
 
     print(f"\n✅ Cleanup complete — {removed_dirs} directories removed, including {removed_files} total files.")
+
+
+def remove_output_dir(paths: dict):
+    job_output_path = paths["base"]
+    if os.path.exists(job_output_path):
+        shutil.rmtree(job_output_path)
+        log_warning(f"Removed job output directory: {job_output_path}")

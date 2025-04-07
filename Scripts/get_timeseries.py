@@ -7,10 +7,12 @@ from profiles import weekly_ndvi_test
 from evalscripts import discover_evalscript, evalscript_raw_bands
 from sentinelhub import SHConfig
 
-from utils.job_utils import generate_job_id, prepare_job_output_dirs
+from utils.file_io import remove_output_dir
+from utils.job_utils import prepare_job_output_dirs
 from utils.tile_utils import generate_safe_tiles, download_orbits_for_tiles
-from utils.metadata_utils import discover_metadata_for_tiles, select_orbits_for_tiles
+from utils.metadata_utils import discover_metadata_for_tiles, select_orbits_for_tiles, has_valid_orbits
 from utils.image_utils import stitch_raw_tile_data, generate_ndvi_products, generate_true_color_products
+from utils.logging_utils import log_warning
 
 profile = weekly_ndvi_test
 start_date, end_date = profile.time_interval
@@ -41,12 +43,13 @@ for job in timeseries_jobs:
     # Prepare output directories
     paths = prepare_job_output_dirs(job)
 
-    # === Core workflow steps ===
+    # Generate safe tiles
     tiles = generate_safe_tiles(
         aoi=job.bbox,
         resolution=job.resolution
     )
     
+    # Discover metadata
     tile_metadata = discover_metadata_for_tiles(
         paths=paths,
         tiles=tiles,
@@ -55,12 +58,21 @@ for job in timeseries_jobs:
         evalscript=discover_evalscript
     )
 
+    # Check for valid orbits
+    if not has_valid_orbits(tile_metadata):
+        # Remove output directory for the job
+        remove_output_dir(paths)
+        log_warning(f"No valid orbits found for job: {job.job_id}. Skipping job.")
+        continue
+    
+    # Select orbits
     selected_orbits = select_orbits_for_tiles(
         paths=paths,
         metadata_by_tile=tile_metadata,
         profile=job
     )
     
+    # Download orbits
     tile_info, failed_tiles = download_orbits_for_tiles(
         paths=paths,
         tiles=tiles,
@@ -70,13 +82,14 @@ for job in timeseries_jobs:
         evalscript=evalscript_raw_bands
     )
     
+    # Stitch tile data
     stitched_image = stitch_raw_tile_data(
         paths=paths,
         tile_info=tile_info
     )
     
     if stitched_image is not None and tile_info:
-        
+        # Generate NDVI and true color products
         generate_ndvi_products(
             paths=paths,
             tile_info=tile_info,
@@ -90,5 +103,4 @@ for job in timeseries_jobs:
         )
         
     else:
-        from utils.logging_utils import log_warning
         log_warning("Skipping NDVI and true-color generation — no stitched data available.")

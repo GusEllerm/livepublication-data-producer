@@ -14,7 +14,6 @@ from utils.image_utils import (
     stitch_tiles
 )
 
-
 def test_compute_ndvi():
     stitched = np.zeros((2, 2, 4))
     stitched[..., 2] = 0.2  # Red
@@ -22,7 +21,6 @@ def test_compute_ndvi():
     ndvi = compute_ndvi(stitched)
     expected = (0.6 - 0.2) / (0.6 + 0.2 + 1e-6)
     assert np.allclose(ndvi, expected)
-
 
 def test_rasterize_true_color():
     stitched = np.zeros((2, 2, 4))
@@ -33,7 +31,6 @@ def test_rasterize_true_color():
     assert rgb.shape == (2, 2, 3)
     assert np.all((rgb >= 0) & (rgb <= 1))
 
-
 def test_compute_stitched_bbox():
     tiles = [
         ("tile1.npy", BBox([1, 1, 2, 2], crs=CRS.WGS84)),
@@ -41,7 +38,6 @@ def test_compute_stitched_bbox():
     ]
     bbox = compute_stitched_bbox(tiles)
     assert bbox == (1, 1, 3, 3)
-
 
 def test_stitch_tiles():
     temp_dir = tempfile.mkdtemp()

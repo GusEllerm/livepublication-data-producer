@@ -10,21 +10,15 @@ The **Data Producer** is Layer 1 of the LivePublication system. It automates sat
 ## 📦 Key Features
 
 - **Orbit-based provenance**: Metadata includes all product IDs and tile sources per request using `Mosaicking.ORBIT`
-- **Modular profiles**: Define AOIs, date ranges, and selection strategies in `profiles.py`
 - **Profile-based job IDs**: Each run generates a unique job ID from the profile, enabling reproducible, structured output
-- **Structured outputs**: All intermediate and final files are saved into a job-specific folder inside `outputs/`
 - **Smart tiling**: Automatically splits large requests into API-safe sub-tiles
 - **Orbit selection**: Ranks and selects the best available orbit based on configurable strategy (e.g. least cloud)
 - **Imagery stitching**: Merges `.npy` tiles into a full-scene array
-- **Postprocessing**: Computes NDVI and renders true-color composites
 - **GeoTIFF output**: Exports `.tif` images with full geospatial metadata
 - **Archived result viewing**: View NDVI and true-color outputs from any previously archived run
 - **Interactive visualisation tool with side-by-side NDVI / RGB view**
 - **Timeseries job support**: Automatically splits profile into per-interval sub-jobs using `time_series_mode`
 - **Full CLI workflow**: Reproducible data generation with Makefile commands
-- **Unit tests**: Lightweight test suite for all core utilities
-
----
 
 ## 🚀 Quick Start
 
@@ -98,11 +92,11 @@ Scripts/
 │   ├── plotting.py         # Plot rendering helpers
 │   └── time_interval_utils.py  # Time interval generation and formatting
 ├── visualise_data.py       # Side-by-side NDVI / RGB viewer with metadata overlay and interaction
-├── visualise_timeseries.py # Scrollable time series viewer
 ├── archive_data.py         # Archive outputs into a named or timestamped folder
 ├── clean_outputs.py        # Output folder cleanup
 ├── tests/
-│   └── file_io.py          # Unit tests for I/O utilities
+│   ├── file_io.py          # Unit tests for I/O utilities
+|   └── image_utils_test.py # Unit tests for image stitching
 ```
 
 ---
@@ -132,7 +126,7 @@ outputs/<parent_job_id>/
     └── ...
 ```
 
-Archived results are saved in `archive/<label or timestamp>/`.
+Archived results are saved in `archive/<label or timestamp>.zip`. These can be visualised without extraction using `make view`.
 
 All GeoTIFFs include proper CRS and bounding box metadata.
 
