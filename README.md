@@ -7,6 +7,22 @@ The **Data Producer** is Layer 1 of the LivePublication system. It automates sat
 
 ---
 
+## 📡 Data Source and Bands
+
+This tool is specifically configured to use **Sentinel-2 L2A** data from the **Copernicus Sentinel Hub**.
+
+The following bands are requested per tile:
+
+- `B02` (Blue)
+- `B03` (Green)
+- `B04` (Red)
+- `B08` (NIR)
+- `B11`, `B12` (SWIR)
+
+These bands are used to compute NDVI and to render true-color composites. All requests use `Mosaicking.ORBIT` to ensure orbit-based provenance.
+
+---
+
 ## 📦 Key Features
 
 - **Orbit-based provenance**: Metadata includes all product IDs and tile sources per request using `Mosaicking.ORBIT`
@@ -19,6 +35,8 @@ The **Data Producer** is Layer 1 of the LivePublication system. It automates sat
 - **Interactive visualisation tool with side-by-side NDVI / RGB view**
 - **Timeseries job support**: Automatically splits profile into per-interval sub-jobs using `time_series_mode`
 - **Full CLI workflow**: Reproducible data generation with Makefile commands
+
+---
 
 ## 🚀 Quick Start
 
@@ -45,14 +63,7 @@ make test                       # Run unit tests
 make archive from-dir=tiles_canterbury label=veg_index_april5
 ```
 
-This will create a new folder under `archive/veg_index_april5/` containing:
-
-- `ndvi.tif`
-- `ndvi.png`
-- `true_color.tif`
-- `true_color.png`
-
-These outputs can then be viewed using:
+This will create a `.zip` file under `archive/veg_index_april5.zip`. It contains all outputs of the selected run and can be visualized interactively using:
 
 ```bash
 make view archive=veg_index_april5
@@ -91,12 +102,12 @@ Scripts/
 │   ├── job_utils.py        # Job ID creation and path helpers
 │   ├── plotting.py         # Plot rendering helpers
 │   └── time_interval_utils.py  # Time interval generation and formatting
-├── visualise_data.py       # Side-by-side NDVI / RGB viewer with metadata overlay and interaction
+├── visualise_data.py       # NDVI / RGB visualisation with metadata panel
 ├── archive_data.py         # Archive outputs into a named or timestamped folder
 ├── clean_outputs.py        # Output folder cleanup
 ├── tests/
-│   ├── file_io.py          # Unit tests for I/O utilities
-|   └── image_utils_test.py # Unit tests for image stitching
+│   ├── file_io.py
+│   └── image_utils_test.py
 ```
 
 ---
