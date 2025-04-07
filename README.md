@@ -1,4 +1,3 @@
-
 # 🌱 LivePublication Data Producer
 
 ![Tests](https://github.com/GusEllerm/livepublication-data-producer/actions/workflows/test.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/Coverage-View_Report-blue)](https://gusellerm.github.io/livepublication-data-producer/)
@@ -40,7 +39,29 @@ These bands are used to compute NDVI and to render true-color composites. All re
 
 ## 🚀 Quick Start
 
+### 🔐 Sentinel Hub Authentication
+
+Before running any workflows, create a `secrets.json` file inside the `Scripts/` directory with your Sentinel Hub credentials:
+
+```json
+{
+  "sh_client_id": "your_client_id",
+  "sh_client_secret": "your_client_secret",
+  "sh_base_url": "https://sh.dataspace.copernicus.eu",
+  "sh_token_url": "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
+}
+```
+
+You can generate an OAuth client by following the instructions here:
+👉 [Copernicus Dataspace Authentication Guide
+](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html)
+
+---
+
+### 🛠️ Installation
+
 ```bash
+
 pip install -r requirements.txt
 ```
 
@@ -57,7 +78,9 @@ make clean                      # Remove all generated outputs
 make test                       # Run unit tests
 ```
 
-### 🗃️ Archive Example
+---
+
+## 🗃️ Archive Example
 
 ```bash
 make archive from-dir=tiles_canterbury label=veg_index_april5
