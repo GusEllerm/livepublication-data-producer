@@ -45,7 +45,7 @@ two_months = (date(2022, 1, 1), date(2022, 3, 31))
 six_months = (date(2022, 1, 1), date(2022, 6, 30))
 
 
-# === Example Presets ===
+# === Example non-timeseries ===
 daily_ndvi_canterbury = DataAcquisitionConfig(
     region='Canterbury',
     bbox=Small_bbox,
@@ -73,16 +73,45 @@ custom_ndvi_test = DataAcquisitionConfig(
 )
 custom_ndvi_test.job_id = generate_job_id(custom_ndvi_test)
 
-# Example time series profiles
-weekly_ndvi_test = DataAcquisitionConfig(
-    region='One Week Test',
+viti_levu_ndvi = DataAcquisitionConfig(
+    region='Viti Levu',
+    bbox=[176.901855,-18.508261,179.167786,-17.127667],
+    time_interval=(date(2024, 8, 1), date(2025, 4, 1)),
+    resolution=10,
+    orbit_selection_strategy='least_cloud'
+)
+viti_levu_ndvi.job_id = generate_job_id(viti_levu_ndvi)
+
+# ======= example timeseries jobs =======
+bi_weekly_ndvi_test = DataAcquisitionConfig(
+    region='Two Week Daily',
     bbox=[144.301300,-28.667094,144.681702,-28.392608], 
     time_interval=(date(2022, 4, 1), date(2022, 4, 14)),
     resolution=10,
     time_series_mode='daily',
     orbit_selection_strategy='least_cloud'
 )
-weekly_ndvi_test.job_id = generate_job_id(weekly_ndvi_test)
+bi_weekly_ndvi_test.job_id = generate_job_id(bi_weekly_ndvi_test)
+
+six_months_monthly = DataAcquisitionConfig(
+    region='Six Months Monthly',
+    bbox=[144.301300,-28.667094,144.681702,-28.392608],
+    time_interval=(date(2022, 1, 1), date(2022, 6, 30)),
+    resolution=10,
+    time_series_mode='monthly',
+    orbit_selection_strategy='least_cloud'
+)
+six_months_monthly.job_id = generate_job_id(six_months_monthly)
+
+three_years_quarterly = DataAcquisitionConfig(
+    region='Three Years Quarterly',
+    bbox=[144.301300,-28.667094,144.681702,-28.392608],
+    time_interval=(date(2020, 1, 1), date(2023, 1, 1)),
+    resolution=10,
+    time_series_mode='quarterly',
+    orbit_selection_strategy='least_cloud'
+)
+three_years_quarterly.job_id = generate_job_id(three_years_quarterly)
 
 # Example custom intervals
 custom_intervals = time_series_custom_intervals=[
@@ -93,3 +122,17 @@ custom_intervals = time_series_custom_intervals=[
         (date(2022, 8, 1), date(2022, 8, 15)),
         (date(2022, 8, 16), date(2022, 8, 31))
         ]
+
+
+# ===== Timeseries profiles of events =======
+
+# Example: White Island Eruption
+white_island_eruption = DataAcquisitionConfig(
+    region='White Island Eruption',
+    bbox=[177.126560,-37.556826,177.243462,-37.488344],
+    time_interval=(date(2019, 11, 20), date(2020, 1, 31)),
+    resolution=10,
+    time_series_mode='daily',
+    orbit_selection_strategy='least_cloud'
+)
+white_island_eruption.job_id = generate_job_id(white_island_eruption)

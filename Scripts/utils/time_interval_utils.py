@@ -15,7 +15,6 @@ def generate_time_intervals(
         list of (start_date, end_date) tuples
     """
     start_date, end_date = profile.time_interval
-
     if start_date > end_date:
         raise ValueError("start_date must be before end_date")
 
@@ -77,6 +76,14 @@ def create_timeseries_jobs(
         list[DataAcquisitionConfig]: A list of derived job profiles with modified time intervals and job metadata.
     """
     from profiles import DataAcquisitionConfig  # Local import to avoid circular dependency
+    from utils.job_utils import generate_job_id
+
+    # Ensure the parent profile has a job_id
+    if not getattr(profile, "job_id", None):
+        profile.job_id = generate_job_id(profile)
+        from utils.logging_utils import log_warning
+        log_warning("⚠️  Parent profile was missing a job_id — generated one automatically.")
+
     time_intervals = generate_time_intervals(profile)
     timeseries_jobs = []
 

@@ -1,6 +1,6 @@
 import json
 from sentinelhub import SHConfig
-from profiles import daily_ndvi_canterbury
+from profiles import daily_ndvi_canterbury, viti_levu_ndvi
 from evalscripts import discover_evalscript, evalscript_raw_bands
 
 from utils.job_utils import prepare_job_output_dirs

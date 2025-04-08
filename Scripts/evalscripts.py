@@ -43,11 +43,19 @@ evalscript_raw_bands = """
 //VERSION=3
 function setup() {
   return {
-    input: [{ bands: ["B02", "B03", "B04", "B08", "B11", "B12"] }],
-    output: { bands: 6, sampleType: "FLOAT32" }
+    input: [{ bands: ["B02", "B03", "B04", "B08", "B11", "B12", "SCL"] }],
+    output: { bands: 7, sampleType: "FLOAT32" }
   };
 }
 function evaluatePixel(sample) {
-  return [sample.B02, sample.B03, sample.B04, sample.B08, sample.B11, sample.B12];
+  return [
+    sample.B02, 
+    sample.B03, 
+    sample.B04, 
+    sample.B08, 
+    sample.B11, 
+    sample.B12,
+    sample.SCL
+    ];
 }
 """

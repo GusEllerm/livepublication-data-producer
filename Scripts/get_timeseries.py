@@ -3,7 +3,7 @@ import copy
 from utils import generate_time_intervals
 from utils.time_interval_utils import create_timeseries_jobs
 
-from profiles import weekly_ndvi_test
+from profiles import bi_weekly_ndvi_test, six_months_monthly, three_years_quarterly, white_island_eruption
 from evalscripts import discover_evalscript, evalscript_raw_bands
 from sentinelhub import SHConfig
 
@@ -14,7 +14,7 @@ from utils.metadata_utils import discover_metadata_for_tiles, select_orbits_for_
 from utils.image_utils import stitch_raw_tile_data, generate_ndvi_products, generate_true_color_products
 from utils.logging_utils import log_warning
 
-profile = weekly_ndvi_test
+profile = white_island_eruption
 start_date, end_date = profile.time_interval
 
 if profile.time_series_mode:

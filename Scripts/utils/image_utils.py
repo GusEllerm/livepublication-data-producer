@@ -155,12 +155,19 @@ def generate_ndvi_products(
     log_step("🧪 Generating NDVI imagery...")
     ndvi = compute_ndvi(stitched_image)
 
+    scl = stitched_image[..., -1].astype(np.uint8)
+    cloud_mask = np.isin(scl, [3, 8, 9, 10])  # cloud shadows, medium/high clouds, cirrus
+    ndvi_masked = np.where(cloud_mask, np.nan, ndvi)
+
+    mask_preview_path = os.path.join(paths["imagery"], "ndvi_cloud_mask.png")
+    plot_image(image=cloud_mask.astype(np.uint8), cmap="gray", save_path=mask_preview_path)
+
     ndvi_png_path = os.path.join(paths["imagery"], "ndvi.png")
-    plot_image(ndvi, cmap="RdYlGn", save_path=ndvi_png_path)
+    plot_image(image=ndvi_masked, cmap="RdYlGn", save_path=ndvi_png_path)
 
     ndvi_tif_path = os.path.join(paths["imagery"], "ndvi.tif")
     bbox = compute_stitched_bbox(tile_info)
-    save_geotiff(ndvi, ndvi_tif_path, bbox, RioCRS.from_epsg(4326))
+    save_geotiff(ndvi_masked, ndvi_tif_path, bbox, RioCRS.from_epsg(4326))
 
     log_success("NDVI imagery saved.")
 

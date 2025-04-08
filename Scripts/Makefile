@@ -18,6 +18,9 @@ timeseries:
 clean:
 	python clean_outputs.py
 
+view: 
+	python visualise_data.py --archive "$(archive)" 
+
 archive:
 	python archive_data.py \
 		$(if $(from), --from-dir="$(from)") \

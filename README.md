@@ -1,3 +1,4 @@
+
 # 🌱 LivePublication Data Producer
 
 ![Tests](https://github.com/GusEllerm/livepublication-data-producer/actions/workflows/test.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/Coverage-View_Report-blue)](https://gusellerm.github.io/livepublication-data-producer/)
@@ -20,6 +21,8 @@ The following bands are requested per tile:
 
 These bands are used to compute NDVI and to render true-color composites. All requests use `Mosaicking.ORBIT` to ensure orbit-based provenance.
 
+The `SCL` (Scene Classification Layer) is also retrieved to enable cloud and shadow masking during NDVI computation.
+
 ---
 
 ## 📦 Key Features
@@ -29,6 +32,7 @@ These bands are used to compute NDVI and to render true-color composites. All re
 - **Smart tiling**: Automatically splits large requests into API-safe sub-tiles
 - **Orbit selection**: Ranks and selects the best available orbit based on configurable strategy (e.g. least cloud)
 - **Imagery stitching**: Merges `.npy` tiles into a full-scene array
+- **Cloud-aware NDVI masking**: Automatically applies pixel-level cloud masks using the Sentinel-2 Scene Classification Layer (SCL) to exclude clouds and shadows from NDVI analysis
 - **GeoTIFF output**: Exports `.tif` images with full geospatial metadata
 - **Archived result viewing**: View NDVI and true-color outputs from any previously archived run
 - **Interactive visualisation tool with side-by-side NDVI / RGB view**
@@ -53,15 +57,13 @@ Before running any workflows, create a `secrets.json` file inside the `Scripts/`
 ```
 
 You can generate an OAuth client by following the instructions here:
-👉 [Copernicus Dataspace Authentication Guide
-](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html)
+👉 [Copernicus Dataspace Authentication Guide](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html)
 
 ---
 
 ### 🛠️ Installation
 
 ```bash
-
 pip install -r requirements.txt
 ```
 
@@ -143,7 +145,7 @@ For each run, outputs are saved to:
 outputs/<job_id>/
 ├── raw_tiles/       # Downloaded tile `.npy` files
 ├── stitched/        # Stitched `.npy` bands
-├── imagery/         # NDVI / RGB `.tif` and `.png`
+├── imagery/         # NDVI / RGB `.tif` and `.png` (+ cloud mask `.png`)
 └── metadata/        # Orbit metadata JSON
 ```
 
