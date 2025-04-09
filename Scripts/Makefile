@@ -7,10 +7,10 @@ run:
 	python get_data.py
 
 coverage:
-	PYTHONPATH=. pytest --cov=Scripts --cov-report=term-missing --ignore=visualise_data.py
+	PYTHONPATH=. pytest --cov=utils --cov-report=term-missing tests/
 
 htmlcov:
-	PYTHONPATH=. pytest --cov=Scripts --cov-report=html:../htmlcov --ignore=visualise_data.py
+	PYTHONPATH=. pytest --cov=utils --cov-report=html:../htmlcov tests/
 
 timeseries:
 	python get_timeseries.py
