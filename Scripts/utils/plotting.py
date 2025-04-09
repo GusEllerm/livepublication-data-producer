@@ -76,7 +76,7 @@ def plot_tile_product_overlay(paths):
         show(src.read([1, 2, 3]), transform=src.transform, ax=ax)
 
         product_to_color = {}
-        product_colors = plt.cm.get_cmap('tab20', 20)
+        product_colors = plt.get_cmap('tab20', 20)
         legend_handles = []
 
         orbit_files = glob.glob(os.path.join(orbit_metadata_dir, "*_selected_orbit.json"))

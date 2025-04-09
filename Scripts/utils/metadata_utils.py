@@ -25,11 +25,9 @@ from utils.logging_utils import log_inline, log_step, log_success, log_warning
 def compute_orbit_bbox(orbit: dict) -> box:
     """
     Computes the bounding box that covers all tiles in an orbit.
-
     Args:
         orbit (dict): Orbit dictionary with tile geometries.
         debug_path (str, optional): Path to write debug JSON file.
-
     Returns:
         tuple: Bounding box (minx, miny, maxx, maxy) covering all tile geometries.
     """
