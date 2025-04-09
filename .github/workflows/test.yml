@@ -12,33 +12,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: 🛎️ Checkout repository code
         uses: actions/checkout@v3.5.3
 
-      - name: Set up Python
+      - name: 🐍 Set up Python 3.12 environment
         uses: actions/setup-python@v4.7.1
         with:
           python-version: 3.12
 
-      - name: Install dependencies
+      - name: 📦 Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Tests
+      - name: 🧪 Run test suite with coverage
         run: |
           make coverage
 
-      - name: Generate HTML coverage report
+      - name: 📊 Generate HTML test coverage report
         run: |
           make htmlcov
 
-      - name: Show what will be deployed
+      - name: 📂 Display HTML coverage report structure
         run: |
           echo "Contents of htmlcov:"
           find htmlcov
 
-      - name: Deploy to GitHub Pages manually
+      - name: 🚀 Deploy HTML coverage report to GitHub Pages
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
