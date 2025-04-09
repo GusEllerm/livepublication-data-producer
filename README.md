@@ -1,5 +1,6 @@
-
 # 🌱 LivePublication Data Producer
+
+- **Unique product metadata indexing**: Automatically discovers and saves detailed metadata for each unique Sentinel-2 product contributing to the final composite using the Copernicus Catalog API
 
 ![Tests](https://github.com/GusEllerm/livepublication-data-producer/actions/workflows/test.yml/badge.svg) [![Coverage Report](https://img.shields.io/badge/Coverage-View_Report-blue)](https://gusellerm.github.io/livepublication-data-producer/)
 
@@ -21,18 +22,16 @@ The following bands are requested per tile:
 
 These bands are used to compute NDVI and to render true-color composites. All requests use `Mosaicking.ORBIT` to ensure orbit-based provenance.
 
-The `SCL` (Scene Classification Layer) is also retrieved to enable cloud and shadow masking during NDVI computation.
-
 ---
 
 ## 📦 Key Features
 
 - **Orbit-based provenance**: Metadata includes all product IDs and tile sources per request using `Mosaicking.ORBIT`
+- **Provenance tracking of Data Products:** Discovers and saves metadata for unique data products used to create the final composite image
 - **Profile-based job IDs**: Each run generates a unique job ID from the profile, enabling reproducible, structured output
 - **Smart tiling**: Automatically splits large requests into API-safe sub-tiles
 - **Orbit selection**: Ranks and selects the best available orbit based on configurable strategy (e.g. least cloud)
 - **Imagery stitching**: Merges `.npy` tiles into a full-scene array
-- **Cloud-aware NDVI masking**: Automatically applies pixel-level cloud masks using the Sentinel-2 Scene Classification Layer (SCL) to exclude clouds and shadows from NDVI analysis
 - **GeoTIFF output**: Exports `.tif` images with full geospatial metadata
 - **Archived result viewing**: View NDVI and true-color outputs from any previously archived run
 - **Interactive visualisation tool with side-by-side NDVI / RGB view**
@@ -57,13 +56,15 @@ Before running any workflows, create a `secrets.json` file inside the `Scripts/`
 ```
 
 You can generate an OAuth client by following the instructions here:
-👉 [Copernicus Dataspace Authentication Guide](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html)
+👉 [Copernicus Dataspace Authentication Guide
+](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html)
 
 ---
 
 ### 🛠️ Installation
 
 ```bash
+
 pip install -r requirements.txt
 ```
 
@@ -122,7 +123,7 @@ Scripts/
 │   ├── __init__.py
 │   ├── tile_utils.py       # Tiling and tile downloading
 │   ├── image_utils.py      # NDVI + true-color stitching and processing
-│   ├── metadata_utils.py   # Orbit metadata and selection
+│   ├── metadata_utils.py   # Orbit metadata and selection (detailed product info)
 │   ├── file_io.py          # GeoTIFF saving and output cleaning
 │   ├── job_utils.py        # Job ID creation and path helpers
 │   ├── plotting.py         # Plot rendering helpers
@@ -145,7 +146,7 @@ For each run, outputs are saved to:
 outputs/<job_id>/
 ├── raw_tiles/       # Downloaded tile `.npy` files
 ├── stitched/        # Stitched `.npy` bands
-├── imagery/         # NDVI / RGB `.tif` and `.png` (+ cloud mask `.png`)
+├── imagery/         # NDVI / RGB `.tif` and `.png`
 └── metadata/        # Orbit metadata JSON
 ```
 
@@ -165,6 +166,8 @@ outputs/<parent_job_id>/
 Archived results are saved in `archive/<label or timestamp>.zip`. These can be visualised without extraction using `make view`.
 
 All GeoTIFFs include proper CRS and bounding box metadata.
+
+The `product_metadata.json` file provides a job-wide index of all unique Sentinel-2 products used to generate the composite, including acquisition time, tile ID, and platform metadata.
 
 ---
 

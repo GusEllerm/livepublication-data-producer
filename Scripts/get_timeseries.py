@@ -3,18 +3,18 @@ import copy
 from utils import generate_time_intervals
 from utils.time_interval_utils import create_timeseries_jobs
 
-from profiles import bi_weekly_ndvi_test, six_months_monthly, three_years_quarterly, white_island_eruption
+from profiles import bi_weekly_ndvi_test, six_months_monthly, three_years_quarterly, white_island_eruption, australian_bushfires
 from evalscripts import discover_evalscript, evalscript_raw_bands
 from sentinelhub import SHConfig
 
+from utils.logging_utils import log_warning
 from utils.file_io import remove_output_dir
 from utils.job_utils import prepare_job_output_dirs
 from utils.tile_utils import generate_safe_tiles, download_orbits_for_tiles
-from utils.metadata_utils import discover_metadata_for_tiles, select_orbits_for_tiles, has_valid_orbits
 from utils.image_utils import stitch_raw_tile_data, generate_ndvi_products, generate_true_color_products
-from utils.logging_utils import log_warning
+from utils.metadata_utils import discover_metadata_for_tiles, select_orbits_for_tiles, has_valid_orbits, discover_orbit_data_metadata
 
-profile = white_island_eruption
+profile = australian_bushfires
 start_date, end_date = profile.time_interval
 
 if profile.time_series_mode:
@@ -71,6 +71,12 @@ for job in timeseries_jobs:
         metadata_by_tile=tile_metadata,
         profile=job
     )
+
+    product_metadata = discover_orbit_data_metadata(
+        paths=paths,
+        config=config,
+    )
+
     
     # Download orbits
     tile_info, failed_tiles = download_orbits_for_tiles(

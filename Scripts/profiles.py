@@ -136,3 +136,15 @@ white_island_eruption = DataAcquisitionConfig(
     orbit_selection_strategy='least_cloud'
 )
 white_island_eruption.job_id = generate_job_id(white_island_eruption)
+
+
+# Example 2019-2020 Australian Bushfires, New South Wales, Bega Valley
+australian_bushfires = DataAcquisitionConfig(
+    region='Australian Bushfires',
+    bbox=[149.537659,-37.517351,150.085602,-36.831272],
+    time_interval=(date(2019, 10, 1), date(2020, 5, 31)),
+    resolution=10,
+    time_series_mode='monthly',
+    orbit_selection_strategy='least_cloud'
+)
+australian_bushfires.job_id = generate_job_id(australian_bushfires)

@@ -126,6 +126,7 @@ def stitch_raw_tile_data(
             raise ValueError("Paths dictionary is required to save the stitched image.")
         output_path = get_stitched_array_path(paths)
 
+        print() # for newline after inline logging
         log_step("🧵 Stitching tiles...")
         stitched_array = stitch_tiles(paths["raw_tiles"], tile_info)
         np.save(output_path, stitched_array)

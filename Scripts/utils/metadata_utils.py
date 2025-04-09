@@ -1,9 +1,10 @@
 import os
 import json
+import glob
 from datetime import date
-from utils.logging_utils import log_step, log_warning, log_inline
+from utils.logging_utils import log_step, log_warning, log_inline, log_success
 from utils.job_utils import get_tile_prefix, get_orbit_metadata_path
-from sentinelhub import BBox, MimeType, SentinelHubRequest, DataCollection, bbox_to_dimensions, CRS, SHConfig
+from sentinelhub import BBox, MimeType, SentinelHubRequest, DataCollection, bbox_to_dimensions, CRS, SHConfig, SentinelHubCatalog
 
 def discover_orbit_metadata(
     paths: dict,
@@ -218,3 +219,53 @@ def has_valid_orbits(metadata_by_tile: dict) -> bool:
         metadata.get("orbits", []) 
         for metadata in metadata_by_tile.values()
     )
+
+def discover_orbit_data_metadata(paths: dict, config: SHConfig) -> None:
+    """
+    Discover detailed product metadata for all unique Sentinel products used across all selected orbits.
+    Args:
+        paths (dict): Output directory structure dictionary.
+        config: SentinelHub config object.
+    Returns:
+        dict: Mapping of product_id -> detailed metadata.
+    """
+    log_step("🔎 Discovering unique product metadata across all selected orbits...")
+
+    metadata_dir = paths["metadata"]
+    orbit_files = glob.glob(os.path.join(metadata_dir, "*_selected_orbit.json"))
+
+    if not orbit_files:
+        log_warning("No selected orbit metadata files found.")
+        return {}
+
+    catalog = SentinelHubCatalog(config=config)
+
+    seen_product_ids = set()
+    product_metadata = {}
+
+    for orbit_file in orbit_files:
+        with open(orbit_file, 'r') as f:
+            selected_orbit = json.load(f)
+
+        product_ids = selected_orbit.get("product_ids", [])
+        for product_id in product_ids:
+            if product_id in seen_product_ids:
+                continue
+            try:
+                results = list(catalog.search(collection=DataCollection.SENTINEL2_L2A, ids=[product_id]))
+                if results:
+                    product_metadata[product_id] = results[0]
+                    seen_product_ids.add(product_id)
+                    log_inline(f"📥 Retrieved metadata for product: {product_id}")
+                    print()  # newline for logging clarity
+                else:
+                    log_warning(f"No metadata found for product {product_id}")
+            except Exception as e:
+                log_warning(f"Error fetching metadata for {product_id}: {e}")
+
+    output_path = os.path.join(metadata_dir, "product_metadata.json")
+    with open(output_path, 'w') as f:
+        json.dump(product_metadata, f, indent=4)
+
+    log_success(f"📦 Saved metadata for {len(product_metadata)} unique products to {output_path}")
+    return product_metadata

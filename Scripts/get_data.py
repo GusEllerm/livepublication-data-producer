@@ -5,7 +5,7 @@ from evalscripts import discover_evalscript, evalscript_raw_bands
 
 from utils.job_utils import prepare_job_output_dirs
 from utils.tile_utils import generate_safe_tiles, download_orbits_for_tiles
-from utils.metadata_utils import discover_metadata_for_tiles, select_orbits_for_tiles
+from utils.metadata_utils import discover_metadata_for_tiles, select_orbits_for_tiles, discover_orbit_data_metadata
 from utils.image_utils import stitch_raw_tile_data, generate_ndvi_products, generate_true_color_products
 
 
@@ -42,6 +42,11 @@ selected_orbits = select_orbits_for_tiles(
     paths=paths,
     metadata_by_tile=tile_metadata,
     profile=profile,
+)
+
+product_metadata = discover_orbit_data_metadata(
+    paths=paths,
+    config=config,
 )
 
 tile_info, failed_tiles = download_orbits_for_tiles(
