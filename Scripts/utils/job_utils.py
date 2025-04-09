@@ -1,8 +1,10 @@
 import os
 import shutil
-from datetime import datetime
-from utils.logging_utils import log_step, log_block
 import zipfile
+from datetime import datetime
+
+from utils.logging_utils import log_block, log_step
+
 
 def generate_job_id(
         config: "DataAcquisitionConfig", 

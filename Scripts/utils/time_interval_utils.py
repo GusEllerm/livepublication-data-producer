@@ -1,7 +1,10 @@
 from copy import deepcopy
 from datetime import date, timedelta
-from utils.job_utils import generate_job_id
+
 from dateutil.relativedelta import relativedelta
+
+from utils.job_utils import generate_job_id
+
 
 def generate_time_intervals(
         profile
@@ -75,7 +78,9 @@ def create_timeseries_jobs(
     Returns:
         list[DataAcquisitionConfig]: A list of derived job profiles with modified time intervals and job metadata.
     """
-    from profiles import DataAcquisitionConfig  # Local import to avoid circular dependency
+    from profiles import (
+        DataAcquisitionConfig,  # Local import to avoid circular dependency
+    )
     from utils.job_utils import generate_job_id
 
     # Ensure the parent profile has a job_id

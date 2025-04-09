@@ -1,13 +1,15 @@
-import os
 import glob
 import json
-import rasterio
-import numpy as np
+import os
 from typing import Any
-from rasterio.plot import show
-import matplotlib.pyplot as plt
-from shapely.geometry import box
+
 import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import numpy as np
+import rasterio
+from rasterio.plot import show
+from shapely.geometry import box
+
 from utils.logging_utils import log_success, log_warning
 
 

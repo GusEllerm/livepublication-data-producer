@@ -1,18 +1,21 @@
+import json
 import os
+
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
-from sentinelhub import BBox
-from utils.plotting import plot_image
-from utils.file_io import save_geotiff
+import rasterio
+from pyproj import CRS, Transformer
 from rasterio.crs import CRS as RioCRS
+from rasterio.plot import show
+from sentinelhub import BBox
+from shapely.geometry import Polygon
+
+from utils.file_io import save_geotiff
 from utils.job_utils import get_stitched_array_path
 from utils.logging_utils import log_step, log_success
-import rasterio
-from rasterio.plot import show
-from shapely.geometry import Polygon
-from pyproj import CRS, Transformer
-import matplotlib.pyplot as plt
-import json
+from utils.plotting import plot_image
+
 
 def stitch_tiles(
         tile_dir: str, 

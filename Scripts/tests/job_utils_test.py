@@ -1,13 +1,18 @@
 import datetime
 import os
-from utils.job_utils import generate_job_id, get_job_output_paths
-from utils.job_utils import prepare_job_output_dirs
-from utils.job_utils import archive_job_outputs
-from utils.job_utils import get_tile_prefix
-from utils.job_utils import get_orbit_metadata_path
-from utils.job_utils import get_stitched_array_path
 import shutil
 import zipfile
+
+from utils.job_utils import (
+    archive_job_outputs,
+    generate_job_id,
+    get_job_output_paths,
+    get_orbit_metadata_path,
+    get_stitched_array_path,
+    get_tile_prefix,
+    prepare_job_output_dirs,
+)
+
 
 class DummyConfig:
     def __init__(self, region, time_interval, parent_job_id=None):

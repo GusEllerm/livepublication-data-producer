@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import Tuple, Optional, List
+from typing import List, Optional, Tuple
+
 from utils.job_utils import generate_job_id
+
 
 @dataclass
 class DataAcquisitionConfig:

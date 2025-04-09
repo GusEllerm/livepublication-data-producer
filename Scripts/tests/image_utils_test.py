@@ -1,22 +1,24 @@
 import os
-import numpy as np
-import tempfile
 import shutil
+import tempfile
+
+import numpy as np
 import pytest
-from sentinelhub import BBox, CRS
+from rasterio import open as rio_open
+from rasterio.enums import Resampling
+from sentinelhub import CRS, BBox
 
 from utils.image_utils import (
     compute_ndvi,
-    rasterize_true_color,
     compute_stitched_bbox,
-    stitch_tiles,
-    stitch_raw_tile_data,
-    get_stitched_array_path,
     generate_ndvi_products,
-    generate_true_color_products
+    generate_true_color_products,
+    get_stitched_array_path,
+    rasterize_true_color,
+    stitch_raw_tile_data,
+    stitch_tiles,
 )
-from rasterio import open as rio_open
-from rasterio.enums import Resampling
+
 
 def test_compute_ndvi():
     stitched = np.zeros((2, 2, 4))
@@ -129,6 +131,7 @@ def test_generate_ndvi_products():
 
 from utils.image_utils import generate_true_color_products
 
+
 def test_generate_true_color_products():
     temp_dir = tempfile.mkdtemp()
     try:
@@ -155,10 +158,13 @@ def test_generate_true_color_products():
     finally:
         shutil.rmtree(temp_dir)
 
-from utils.image_utils import validate_image_coverage_with_tile_footprints
+import json
+
 import rasterio
 from rasterio.transform import from_origin
-import json
+
+from utils.image_utils import validate_image_coverage_with_tile_footprints
+
 
 def test_validate_image_coverage_with_tile_footprints():
     temp_dir = tempfile.mkdtemp()

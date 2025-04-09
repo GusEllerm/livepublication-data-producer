@@ -1,14 +1,15 @@
 import argparse
-import numpy as np
-import json
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import os
-import matplotlib.gridspec as gridspec
-import zipfile
-import shutil
 import atexit
 import glob
+import json
+import os
+import shutil
+import zipfile
+
+import matplotlib.gridspec as gridspec
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import numpy as np
 
 # === Load parser and arguments ===
 parser = argparse.ArgumentParser()

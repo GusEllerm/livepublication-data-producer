@@ -1,13 +1,26 @@
-import os
-import json
 import glob
+import json
+import os
 from datetime import date
-from shapely.geometry import shape, box
+
+from pyproj import CRS as pyprojCRS
+from pyproj import Transformer
+from sentinelhub import (
+    CRS,
+    BBox,
+    DataCollection,
+    MimeType,
+    SentinelHubCatalog,
+    SentinelHubRequest,
+    SHConfig,
+    bbox_to_dimensions,
+)
+from shapely.geometry import box, shape
 from shapely.ops import transform, unary_union
-from pyproj import CRS as pyprojCRS, Transformer
-from utils.logging_utils import log_step, log_warning, log_inline, log_success
-from utils.job_utils import get_tile_prefix, get_orbit_metadata_path
-from sentinelhub import BBox, MimeType, SentinelHubRequest, DataCollection, bbox_to_dimensions, CRS, SHConfig, SentinelHubCatalog
+
+from utils.job_utils import get_orbit_metadata_path, get_tile_prefix
+from utils.logging_utils import log_inline, log_step, log_success, log_warning
+
 
 def compute_orbit_bbox(orbit: dict) -> box:
     """
