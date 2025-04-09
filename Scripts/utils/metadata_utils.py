@@ -2,9 +2,42 @@ import os
 import json
 import glob
 from datetime import date
+from shapely.geometry import shape, box
+from shapely.ops import transform, unary_union
+from pyproj import CRS as pyprojCRS, Transformer
 from utils.logging_utils import log_step, log_warning, log_inline, log_success
 from utils.job_utils import get_tile_prefix, get_orbit_metadata_path
 from sentinelhub import BBox, MimeType, SentinelHubRequest, DataCollection, bbox_to_dimensions, CRS, SHConfig, SentinelHubCatalog
+
+def compute_orbit_bbox(orbit: dict) -> box:
+    """
+    Computes the bounding box that covers all tiles in an orbit.
+
+    Args:
+        orbit (dict): Orbit dictionary with tile geometries.
+        debug_path (str, optional): Path to write debug JSON file.
+
+    Returns:
+        tuple: Bounding box (minx, miny, maxx, maxy) covering all tile geometries.
+    """
+    orbit_geometries = []
+
+    for tile in orbit.get("tiles", []):
+        geometry_data = tile.get("dataGeometry")
+        if not geometry_data:
+            continue
+
+        geom = shape(geometry_data)
+        source_crs = pyprojCRS.from_user_input(geometry_data["crs"]["properties"]["name"])
+        target_crs = pyprojCRS.from_epsg(4326)
+        transformer = Transformer.from_crs(source_crs, target_crs, always_xy=True)
+        geom_wgs84 = transform(transformer.transform, geom)
+        orbit_geometries.append(geom_wgs84)
+
+    if not orbit_geometries:
+        raise ValueError("No valid geometries found in orbit.")
+
+    return unary_union(orbit_geometries)
 
 def discover_orbit_metadata(
     paths: dict,
@@ -50,6 +83,7 @@ def discover_orbit_metadata(
         response = request.get_data()[0]
         if isinstance(response, dict) and "userdata.json" in response:
             metadata = response["userdata.json"]
+            metadata["tile_bbox"] = list(tile)  # Inject tile_bbox into metadata
         else:
             metadata = response  # Fallback if JSON is returned directly
     except Exception as e:
@@ -66,13 +100,15 @@ def discover_orbit_metadata(
 
 def select_best_orbit(
         metadata: dict, 
-        profile: "DataAcquisitionConfig"
+        profile: "DataAcquisitionConfig",
+        tile_bbox: list
     ) -> dict:
     """
     Select the best orbit from the provided metadata using a specific strategy.
     Args:
         metadata (dict): Orbit metadata dictionary loaded from a metadata.json file.
         profile: The profile object with orbit selection strategy.
+        tile_bbox: The bounding box of the tile.
     Returns:
         dict: Selected orbit dictionary.
     """
@@ -83,12 +119,37 @@ def select_best_orbit(
         raise ValueError("No orbits found in metadata")
 
     if strategy == "least_cloud":
-        # Compute average cloud coverage for each orbit
         def avg_cloud(orbit):
             clouds = [tile.get("cloudCoverage", 100.0) for tile in orbit.get("tiles", [])]
             return sum(clouds) / len(clouds) if clouds else 100.0
+        
+        def filter_orbits(metadata, tile_bbox):
+            """
+            Filter orbits based on spatial coverage over the tile.
+            Args:
+                metadata (dict): Orbit metadata dictionary.
+                tile_bbox (list): Tile bounding box coordinates.
+            Returns:
+                list: Filtered orbits with sufficient spatial coverage.
+            """
+            filtered_orbits = []
+            for orbit in metadata["orbits"]:                
+                orbit_geom = compute_orbit_bbox(orbit)
 
-        best_orbit = min(orbits, key=avg_cloud)
+                intersection_area = orbit_geom.intersection(box(*tile_bbox)).area
+                percentage_coverage = intersection_area / box(*tile_bbox).area
+
+                # Check if the orbit covers more than 90% of the tile
+                if percentage_coverage > 0.9:
+                    filtered_orbits.append(orbit)
+                
+            if not filtered_orbits:
+                raise ValueError("No valid orbits with sufficient spatial coverage.")
+            return filtered_orbits
+
+        valid_orbits = filter_orbits(metadata, tile_bbox)
+        best_orbit = min(valid_orbits, key=avg_cloud)
+
         return {
             "strategy": "least_cloud",
             "orbit_date": best_orbit["dateFrom"][:10],
@@ -184,9 +245,16 @@ def select_orbits_for_tiles(
     failures = []
 
     log_inline(f"🎯 Selecting orbits: 0/{len(metadata_by_tile)} tiles complete")
+    
+    workflow_tile_path = os.path.join(paths["metadata"], "workflow_tile_metadata.json")
+    with open(workflow_tile_path, "r") as f:
+        tile_bboxes = json.load(f)
+
     for tile_prefix, metadata in metadata_by_tile.items():
         try:
-            orbit = select_best_orbit(metadata=metadata, profile=profile)
+            normalized_tile_key = tile_prefix.split("_")[-1] if "tile" in tile_prefix else tile_prefix
+            tile_bbox = tile_bboxes[normalized_tile_key]["bbox"]
+            orbit = select_best_orbit(metadata=metadata, profile=profile, tile_bbox=tile_bbox)
             write_selected_orbit(paths=paths, orbit_data=orbit, prefix=tile_prefix)
             selected_orbits[tile_prefix] = orbit
             log_inline(f"🎯 Selected orbits: {len(selected_orbits)}/{len(metadata_by_tile)} complete")
@@ -269,3 +337,26 @@ def discover_orbit_data_metadata(paths: dict, config: SHConfig) -> None:
 
     log_success(f"📦 Saved metadata for {len(product_metadata)} unique products to {output_path}")
     return product_metadata
+
+def write_workflow_tile_metadata(paths: dict, tiles: list[BBox]) -> None:
+    """
+    Write the bounding boxes of workflow-defined tiles to disk for diagnostics and transparency.
+
+    Args:
+        paths (dict): Output directory structure dictionary.
+        tiles (list[BBox]): List of BBox tile objects.
+    """
+    tile_metadata = {
+        f"tile{i}": {
+            "bbox": list(tile),
+            "crs": str(tile.crs)
+        }
+        for i, tile in enumerate(tiles)
+    }
+
+    os.makedirs(paths["metadata"], exist_ok=True)
+    output_path = os.path.join(paths["metadata"], "workflow_tile_metadata.json")
+    with open(output_path, "w") as f:
+        json.dump(tile_metadata, f, indent=2)
+
+    log_success(f"📦 Saved workflow tile metadata to {output_path}")

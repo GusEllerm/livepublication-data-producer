@@ -48,7 +48,7 @@ six_months = (date(2022, 1, 1), date(2022, 6, 30))
 # === Example non-timeseries ===
 daily_ndvi_canterbury = DataAcquisitionConfig(
     region='Canterbury',
-    bbox=Small_bbox,
+    bbox=[46.560745,-19.237253,46.934967,-18.990064],
     time_interval=two_months,
     resolution=10,
     orbit_selection_strategy='least_cloud'

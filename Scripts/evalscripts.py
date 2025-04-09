@@ -29,7 +29,8 @@ function updateOutputMetadata(scenes, inputMetadata, outputMetadata) {
             productId: tile.productId,
             date: tile.date,
             cloudCoverage: tile.cloudCoverage,
-            dataEnvelope: tile.dataEnvelope
+            dataEnvelope: tile.dataEnvelope,
+            dataGeometry: tile.dataGeometry,
           };
         })
       };

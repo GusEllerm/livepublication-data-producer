@@ -7,6 +7,12 @@ from utils.file_io import save_geotiff
 from rasterio.crs import CRS as RioCRS
 from utils.job_utils import get_stitched_array_path
 from utils.logging_utils import log_step, log_success
+import rasterio
+from rasterio.plot import show
+from shapely.geometry import Polygon
+from pyproj import CRS, Transformer
+import matplotlib.pyplot as plt
+import json
 
 def stitch_tiles(
         tile_dir: str, 
@@ -199,3 +205,50 @@ def generate_true_color_products(
     save_geotiff(rgb, rgb_tif_path, bbox, RioCRS.from_epsg(4326))
 
     log_success("True-color imagery saved.")
+
+def validate_image_coverage_with_tile_footprints(
+    stitched_image_path: str,
+    selected_orbit_path: str,
+    output_path: str | None = None
+) -> None:
+    """
+    Validates stitched image coverage against the contributing tile dataEnvelopes.
+    Overlays tile footprints onto the true-color image and optionally saves a diagnostic PNG.
+    Args:
+        stitched_image_path (str): Path to the stitched GeoTIFF image (e.g. true_color.tif).
+        selected_orbit_path (str): Path to the *_selected_orbit.json file containing dataEnvelope info.
+        output_path (str | None): Optional path to save the output PNG. If None, the figure will be shown.
+    """
+    with rasterio.open(stitched_image_path) as src:
+        image = src.read([1, 2, 3])  # RGB bands
+        image_crs = src.crs
+        fig, ax = plt.subplots(figsize=(10, 10))
+        show(image, transform=src.transform, ax=ax)
+
+        with open(selected_orbit_path, "r") as f:
+            orbit_data = json.load(f)
+
+        for i, tile in enumerate(orbit_data.get("orbit", {}).get("tiles", [])):
+            coords = tile["dataEnvelope"]["coordinates"][0]
+            tile_crs_str = tile["dataEnvelope"]["crs"]["properties"]["name"]
+            tile_crs = CRS.from_user_input(tile_crs_str)
+
+            print("Tile CRS:", tile_crs)
+            print("Image CRS:", image_crs)
+            transformer = Transformer.from_crs(tile_crs, image_crs, always_xy=True)
+            transformed_coords = [transformer.transform(x, y) for x, y in coords]
+            poly = Polygon(transformed_coords)
+            x, y = poly.exterior.xy
+            ax.plot(x, y, color='red', linewidth=2, label='Tile' if i == 0 else "")
+
+            print("Raw tile coords:", coords)
+            print("Transformed coords:", transformed_coords)
+
+        ax.set_title("Stitched Image with Tile Footprints")
+        ax.legend()
+
+        if output_path:
+            fig.savefig(output_path, bbox_inches='tight', pad_inches=0)
+            plt.close(fig)
+        else:
+            plt.show()

@@ -10,6 +10,7 @@ from sentinelhub import SHConfig
 from utils.logging_utils import log_warning
 from utils.file_io import remove_output_dir
 from utils.job_utils import prepare_job_output_dirs
+from utils.plotting import plot_tile_product_overlay
 from utils.tile_utils import generate_safe_tiles, download_orbits_for_tiles
 from utils.image_utils import stitch_raw_tile_data, generate_ndvi_products, generate_true_color_products
 from utils.metadata_utils import discover_metadata_for_tiles, select_orbits_for_tiles, has_valid_orbits, discover_orbit_data_metadata
@@ -45,6 +46,7 @@ for job in timeseries_jobs:
 
     # Generate safe tiles
     tiles = generate_safe_tiles(
+        paths=paths,
         aoi=job.bbox,
         resolution=job.resolution
     )
@@ -108,5 +110,7 @@ for job in timeseries_jobs:
             stitched_image=stitched_image
         )
         
+        product_overlay = plot_tile_product_overlay(paths)
+
     else:
         log_warning("Skipping NDVI and true-color generation — no stitched data available.")

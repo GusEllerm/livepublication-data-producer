@@ -1,3 +1,4 @@
+
 # 🌱 LivePublication Data Producer
 
 - **Unique product metadata indexing**: Automatically discovers and saves detailed metadata for each unique Sentinel-2 product contributing to the final composite using the Copernicus Catalog API
@@ -27,6 +28,7 @@ These bands are used to compute NDVI and to render true-color composites. All re
 ## 📦 Key Features
 
 - **Orbit-based provenance**: Metadata includes all product IDs and tile sources per request using `Mosaicking.ORBIT`
+- **Accurate orbit geometry filtering**: Orbit selection now uses true Sentinel-2 data geometry, not bounding boxes, for accurate tile coverage comparison
 - **Provenance tracking of Data Products:** Discovers and saves metadata for unique data products used to create the final composite image
 - **Profile-based job IDs**: Each run generates a unique job ID from the profile, enabling reproducible, structured output
 - **Smart tiling**: Automatically splits large requests into API-safe sub-tiles
@@ -37,6 +39,7 @@ These bands are used to compute NDVI and to render true-color composites. All re
 - **Interactive visualisation tool with side-by-side NDVI / RGB view**
 - **Timeseries job support**: Automatically splits profile into per-interval sub-jobs using `time_series_mode`
 - **Full CLI workflow**: Reproducible data generation with Makefile commands
+- **Download diagnostics and debugging**: Timestamped request logs and improved error handling help detect hanging downloads and rate-limit scenarios
 
 ---
 
@@ -56,15 +59,15 @@ Before running any workflows, create a `secrets.json` file inside the `Scripts/`
 ```
 
 You can generate an OAuth client by following the instructions here:
-👉 [Copernicus Dataspace Authentication Guide
-](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html)
+👉 [Copernicus Dataspace Authentication Guide](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html)
+
+> 💡 Tip: Use `logging.basicConfig(level=logging.DEBUG)` to enable verbose HTTP logging for Sentinel Hub API debugging.
 
 ---
 
 ### 🛠️ Installation
 
 ```bash
-
 pip install -r requirements.txt
 ```
 
@@ -109,6 +112,8 @@ Orbit selection determines which Sentinel-2 orbit is used to fulfill a request:
 | `best_per_tile` | Selects the best tile for each region individually (WIP)         |
 
 Unimplemented strategies will fail gracefully.
+
+> ⚙️ Behind the scenes, orbit selection computes the actual intersection between the requested tile and the Sentinel-2 orbit’s real data footprint, not just bounding boxes. This ensures only valid orbits are selected.
 
 ---
 

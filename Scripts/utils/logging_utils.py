@@ -1,3 +1,5 @@
+# logging_utils.py - pragma: no cover
+
 import sys
 
 def log_step(message: str):

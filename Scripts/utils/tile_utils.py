@@ -6,8 +6,11 @@ import numpy as np
 from utils.logging_utils import log_step, log_success, log_warning
 from utils.job_utils import get_tile_prefix
 from utils.logging_utils import log_inline
+from utils.metadata_utils import write_workflow_tile_metadata
+from datetime import datetime
 
 def generate_safe_tiles(
+        paths: dict,
         aoi: BBox, 
         resolution: int = 10, 
         max_dim: int = 2500, 
@@ -16,6 +19,7 @@ def generate_safe_tiles(
     """
     Generate 'safe' tiles for Sentinel Hub API requests.
     Args:
+        paths (dict): Dictionary of job output paths.
         aoi (list): Area of interest [min_lon, min_lat, max_lon, max_lat].
         resolution (int): Resolution in meters.
         max_dim (int): Maximum dimension of the tile.
@@ -39,6 +43,10 @@ def generate_safe_tiles(
             ], crs=CRS.WGS84)
             tiles.append(tile)
     log_success(f"Generated {len(tiles)} tiles.")
+    
+    # Persist metadata for transparency
+    write_workflow_tile_metadata(paths=paths, tiles=tiles)
+    
     return tiles
 
 def download_safe_tiles(
@@ -92,7 +100,8 @@ def download_safe_tiles(
             if data is None or np.all(data == 0):
                 raise ValueError("Empty or invalid data")
         except Exception as e:
-            log_warning(f"Failed to get tile {i}: {e}")
+            print()  # Ensure clean break from inline log
+            log_warning(f"⚠️ Failed to download tile {i}: {e}")
             failed_tiles.append((i, tile))
             continue
 
