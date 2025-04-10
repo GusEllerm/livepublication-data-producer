@@ -3,7 +3,7 @@ import shutil
 import zipfile
 from datetime import datetime
 
-from utils.logging_utils import log_block, log_step
+from utils.logging_utils import log_block, log_step, log_error
 
 
 def generate_job_id(
@@ -38,7 +38,11 @@ def get_job_output_paths(
     Returns:
         dict: A dictionary of output paths keyed by content type.
     """
-    base = os.path.join("outputs", config.job_id)
+    if not hasattr(config, "output_base_dir"):
+        log_error("Missing required config attribute: 'output_base_dir'")
+        exit(1)
+    output_root = config.output_base_dir
+    base = os.path.join(output_root, config.job_id)
     return {
         "base": base,
         "raw_tiles": os.path.join(base, "raw_tiles"),

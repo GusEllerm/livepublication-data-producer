@@ -31,6 +31,7 @@ These bands are used to compute NDVI and to render true-color composites. All re
 - **Accurate orbit geometry filtering**: Orbit selection now uses true Sentinel-2 data geometry, not bounding boxes, for accurate tile coverage comparison
 - **Provenance tracking of Data Products:** Discovers and saves metadata for unique data products used to create the final composite image
 - **Profile-based job IDs**: Each run generates a unique job ID from the profile, enabling reproducible, structured output
+- **Configurable output location**: All outputs can be redirected to a custom directory using the `output_base_dir` attribute in each profile
 - **Smart tiling**: Automatically splits large requests into API-safe sub-tiles
 - **Orbit selection**: Ranks and selects the best available orbit based on configurable strategy (e.g. least cloud)
 - **Imagery stitching**: Merges `.npy` tiles into a full-scene array
@@ -38,8 +39,6 @@ These bands are used to compute NDVI and to render true-color composites. All re
 - **Archived result viewing**: View NDVI and true-color outputs from any previously archived run
 - **Interactive visualisation tool with side-by-side NDVI / RGB view**
 - **Timeseries job support**: Automatically splits profile into per-interval sub-jobs using `time_series_mode`
-- **Full CLI workflow**: Reproducible data generation with Makefile commands
-- **Download diagnostics and debugging**: Timestamped request logs and improved error handling help detect hanging downloads and rate-limit scenarios
 
 ---
 
@@ -85,6 +84,49 @@ make test                       # Run unit tests
 ```
 
 ---
+
+## 📑 Profiles and Configuration
+
+Profiles define the **area of interest**, **timeframe**, **output location**, and other parameters for data retrieval. Each profile is a Python object (typically a `dataclass`) defined in `Scripts/profiles.py`. Profiles are passed to workflows like `get_data.py` or `get_timeseries.py`.
+
+### 🧾 Example Profile
+
+```python
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional
+
+@dataclass
+class DataAcquisitionConfig:
+    job_name: str
+    bbox: list[float]                # Bounding box [minLon, minLat, maxLon, maxLat]
+    timeframe: tuple[str, str]      # ISO-format start/end dates
+    output_base_dir: str            # Local output directory (relative or absolute)
+    max_cloud_cover: Optional[float] = 100.0  # Optional orbit cloud cover threshold
+    time_series_mode: bool = False            # If True, runs a time series job
+
+# Example instance
+daily_ndvi_canterbury = DataAcquisitionConfig(
+    job_name="daily_ndvi_canterbury",
+    bbox=[172.4, -43.6, 172.8, -43.4],
+    timeframe=("2024-01-01", "2024-01-31"),
+    output_base_dir="outputs",  # Can also be "results/", "../data/output/", etc.
+)
+```
+
+### 📦 Output Directory
+
+Each job creates an isolated directory inside `output_base_dir`, which includes subfolders like:
+
+```
+outputs/daily_ndvi_canterbury/
+├── raw_tiles/
+├── stitched/
+├── imagery/
+└── metadata/
+```
+
+You can override this with a different directory per job, or configure all profiles in a shared location for integration with CWL workflows or other pipeline systems.
 
 ## 🗃️ Archive Example
 
@@ -145,10 +187,10 @@ Scripts/
 
 ## 📤 Output Files
 
-For each run, outputs are saved to:
+For each run, outputs are saved to the location specified by the `output_base_dir` attribute in your profile:
 
 ```
-outputs/<job_id>/
+<output_base_dir>/<job_id>/
 ├── raw_tiles/       # Downloaded tile `.npy` files
 ├── stitched/        # Stitched `.npy` bands
 ├── imagery/         # NDVI / RGB `.tif` and `.png`
@@ -158,7 +200,7 @@ outputs/<job_id>/
 For timeseries jobs, outputs are structured like:
 
 ```
-outputs/<parent_job_id>/
+<output_base_dir>/<parent_job_id>/
 ├── <sub_job_id_1>/
 │   ├── raw_tiles/
 │   ├── stitched/
