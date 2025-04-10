@@ -5,6 +5,7 @@ from dateutil.relativedelta import relativedelta
 
 from .job_utils import generate_job_id
 
+
 def generate_time_intervals(
         profile
     ) -> list[tuple[date, date]]:
