@@ -89,7 +89,7 @@ make test                       # Run unit tests
 
 Profiles define the **area of interest**, **timeframe**, **output location**, and other parameters for data retrieval. Each profile is a Python object (typically a `dataclass`) defined in `Scripts/profiles.py`. Profiles are passed to workflows like `get_data.py` or `get_timeseries.py`.
 
-### 🧾 Example Profile
+1. 🧾 Example Profile
 
 ```python
 from dataclasses import dataclass
