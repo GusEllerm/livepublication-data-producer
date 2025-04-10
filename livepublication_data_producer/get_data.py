@@ -32,8 +32,8 @@ config.sh_base_url = secrets["sh_base_url"]
 config.sh_token_url = secrets["sh_token_url"]
 
 # validate_image_coverage_with_tile_footprints(
-#     stitched_image_path="/Users/eller/Projects/Geo_LivePub/Scripts/outputs/australian_bushfires__20191001_20200531/australian_bushfires__20191001_20191031/imagery/true_color.tif",
-#     selected_orbit_path="/Users/eller/Projects/Geo_LivePub/Scripts/outputs/australian_bushfires__20191001_20200531/australian_bushfires__20191001_20191031/metadata/australian_bushfires_tile0_selected_orbit.json",
+#     stitched_image_path="/Users/eller/Projects/Geo_LivePub/livepublication_data_producer/outputs/australian_bushfires__20191001_20200531/australian_bushfires__20191001_20191031/imagery/true_color.tif",
+#     selected_orbit_path="/Users/eller/Projects/Geo_LivePub/livepublication_data_producer/outputs/australian_bushfires__20191001_20200531/australian_bushfires__20191001_20191031/metadata/australian_bushfires_tile0_selected_orbit.json",
 # )
 
 # === Output directory structure (job-based) ===
