@@ -3,7 +3,7 @@ import shutil
 import zipfile
 from datetime import datetime
 
-from utils.logging_utils import log_block, log_step, log_error
+from utils.logging_utils import log_block, log_error, log_step
 
 
 def generate_job_id(
