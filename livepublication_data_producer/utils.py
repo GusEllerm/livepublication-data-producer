@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
 from dateutil.relativedelta import relativedelta
-from profiles import DataAcquisitionConfig
 from rasterio.transform import from_bounds
 from sentinelhub import (
     CRS,
@@ -22,3 +21,5 @@ from sentinelhub import (
     SentinelHubRequest,
     bbox_to_dimensions,
 )
+
+from profiles import DataAcquisitionConfig

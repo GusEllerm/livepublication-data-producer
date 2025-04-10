@@ -1,6 +1,8 @@
 import copy
 import json
 
+from sentinelhub import SHConfig
+
 from evalscripts import discover_evalscript, evalscript_raw_bands
 from profiles import (
     australian_bushfires,
@@ -9,7 +11,6 @@ from profiles import (
     three_years_quarterly,
     white_island_eruption,
 )
-from sentinelhub import SHConfig
 from utils import generate_time_intervals
 from utils.file_io import remove_output_dir
 from utils.image_utils import (

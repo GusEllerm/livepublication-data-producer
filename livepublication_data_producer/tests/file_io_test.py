@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import rasterio
 from rasterio.crs import CRS
+
 from utils.file_io import clean_all_outputs, save_geotiff
 
 TEST_OUTPUT_DIR = "test_outputs"
