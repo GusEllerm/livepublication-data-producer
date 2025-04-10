@@ -40,6 +40,7 @@ def test_get_job_output_paths():
     class DummyConfigWithJobID:
         def __init__(self, job_id):
             self.job_id = job_id
+            self.output_base_dir = "outputs"
 
     config = DummyConfigWithJobID("test_region__20230101_20230131")
     paths = get_job_output_paths(config)
@@ -55,6 +56,7 @@ def test_prepare_job_output_dirs():
     class DummyConfigWithJobID:
         def __init__(self, job_id):
             self.job_id = job_id
+            self.output_base_dir = "outputs"
 
     job_id = "test_region__20230101_20230131"
     config = DummyConfigWithJobID(job_id)
