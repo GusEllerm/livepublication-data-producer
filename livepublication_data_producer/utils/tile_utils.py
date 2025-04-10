@@ -12,7 +12,6 @@ from sentinelhub import (
     SHConfig,
     bbox_to_dimensions,
 )
-
 from utils.job_utils import get_tile_prefix
 from utils.logging_utils import log_inline, log_step, log_success, log_warning
 from utils.metadata_utils import write_workflow_tile_metadata

@@ -4,7 +4,6 @@ import shutil
 import numpy as np
 import rasterio
 from rasterio.transform import from_bounds
-
 from utils.logging_utils import log_warning
 
 

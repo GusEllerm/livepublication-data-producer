@@ -9,7 +9,6 @@ import numpy as np
 import rasterio
 from rasterio.plot import show
 from shapely.geometry import box
-
 from utils.logging_utils import log_success, log_warning
 
 

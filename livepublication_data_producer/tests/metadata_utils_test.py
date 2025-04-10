@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from sentinelhub import BBox, SHConfig
 from shapely.geometry import Polygon, box
-
 from utils.metadata_utils import (
     compute_orbit_bbox,
     discover_metadata_for_tiles,

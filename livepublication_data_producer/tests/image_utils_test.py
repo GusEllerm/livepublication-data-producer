@@ -7,7 +7,6 @@ import pytest
 from rasterio import open as rio_open
 from rasterio.enums import Resampling
 from sentinelhub import CRS, BBox
-
 from utils.image_utils import (
     compute_ndvi,
     compute_stitched_bbox,
@@ -162,7 +161,6 @@ import json
 
 import rasterio
 from rasterio.transform import from_origin
-
 from utils.image_utils import validate_image_coverage_with_tile_footprints
 
 

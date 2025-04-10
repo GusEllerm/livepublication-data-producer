@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 from sentinelhub import CRS, BBox, MimeType, SHConfig
-
 from utils.tile_utils import (
     convert_tiles_to_bboxes,
     download_orbits_for_tiles,

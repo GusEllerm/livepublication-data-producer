@@ -1,9 +1,8 @@
 import json
 
-from sentinelhub import SHConfig
-
 from evalscripts import discover_evalscript, evalscript_raw_bands
 from profiles import daily_ndvi_canterbury, viti_levu_ndvi
+from sentinelhub import SHConfig
 from utils.image_utils import (
     generate_ndvi_products,
     generate_true_color_products,

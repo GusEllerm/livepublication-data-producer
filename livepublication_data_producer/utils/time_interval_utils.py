@@ -2,7 +2,6 @@ from copy import deepcopy
 from datetime import date, timedelta
 
 from dateutil.relativedelta import relativedelta
-
 from utils.job_utils import generate_job_id
 
 
