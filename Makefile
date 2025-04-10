@@ -21,3 +21,6 @@ test:
 
 archive:
 	make -C livepublication_data_producer archive
+
+requirements:
+	pip-compile --generate-hashes --output-file=requirements.txt pyproject.toml

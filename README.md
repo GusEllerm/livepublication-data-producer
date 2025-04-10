@@ -65,8 +65,12 @@ You can generate an OAuth client by following the instructions here:
 
 ### 🛠️ Installation
 
+This project uses `pyproject.toml` as the single source of truth for dependencies.
+
+To compile a `requirements.txt` file from `pyproject.toml`:
+
 ```bash
-pip install -r requirements.txt
+pip-compile --resolver=backtracking --generate-hashes
 ```
 
 Then run:
@@ -162,7 +166,7 @@ Unimplemented strategies will fail gracefully.
 
 ```
 livepublication_data_producer/
-├── __init__.py          
+├── __init__.py      
 ├── get_data.py             # Run once for current profile (single orbit)
 ├── get_timeseries.py       # Generate data across a time series using sub-jobs
 ├── profiles.py             # AOIs and config definitions

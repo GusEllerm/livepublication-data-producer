@@ -28,3 +28,6 @@ secrets.json
 *.coverage
 .cache/
 htmlcov/
+
+*.egg-info/
+*.eggs/
