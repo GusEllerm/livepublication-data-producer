@@ -55,7 +55,7 @@ daily_ndvi_canterbury = DataAcquisitionConfig(
     bbox=[46.560745,-19.237253,46.934967,-18.990064],
     time_interval=two_months,
     resolution=10,
-    output_base_dir="outputs_test",
+    output_base_dir="outputs",
     orbit_selection_strategy='least_cloud'
 )
 daily_ndvi_canterbury.job_id = generate_job_id(daily_ndvi_canterbury)

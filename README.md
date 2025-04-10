@@ -1,4 +1,3 @@
-
 # 🌱 LivePublication Data Producer
 
 - **Unique product metadata indexing**: Automatically discovers and saves detailed metadata for each unique Sentinel-2 product contributing to the final composite using the Copernicus Catalog API
@@ -162,7 +161,8 @@ Unimplemented strategies will fail gracefully.
 ## 📂 Directory Overview
 
 ```
-Scripts/
+livepublication_data_producer/
+├── __init__.py          
 ├── get_data.py             # Run once for current profile (single orbit)
 ├── get_timeseries.py       # Generate data across a time series using sub-jobs
 ├── profiles.py             # AOIs and config definitions
