@@ -45,7 +45,7 @@ These bands are used to compute NDVI and to render true-color composites. All re
 
 ### 🔐 Sentinel Hub Authentication
 
-Before running any workflows, create a `secrets.json` file inside the `Scripts/` directory with your Sentinel Hub credentials:
+Before running any workflows, create a `secrets.json` file inside the `livepublication_data_producer/` directory with your Sentinel Hub credentials:
 
 ```json
 {
@@ -86,7 +86,7 @@ make test                       # Run unit tests
 
 ## 📑 Profiles and Configuration
 
-Profiles define the **area of interest**, **timeframe**, **output location**, and other parameters for data retrieval. Each profile is a Python object (typically a `dataclass`) defined in `Scripts/profiles.py`. Profiles are passed to workflows like `get_data.py` or `get_timeseries.py`.
+Profiles define the **area of interest**, **timeframe**, **output location**, and other parameters for data retrieval. Each profile is a Python object (typically a `dataclass`) defined in `livepublication_data_producer/profiles.py`. Profiles are passed to workflows like `get_data.py` or `get_timeseries.py`.
 
 1. 🧾 Example Profile
 
