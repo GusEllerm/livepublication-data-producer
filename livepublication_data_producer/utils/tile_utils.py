@@ -13,9 +13,9 @@ from sentinelhub import (
     bbox_to_dimensions,
 )
 
-from utils.job_utils import get_tile_prefix
-from utils.logging_utils import log_inline, log_step, log_success, log_warning
-from utils.metadata_utils import write_workflow_tile_metadata
+from .job_utils import get_tile_prefix
+from .logging_utils import log_inline, log_step, log_success, log_warning
+from .metadata_utils import write_workflow_tile_metadata
 
 
 def generate_safe_tiles(

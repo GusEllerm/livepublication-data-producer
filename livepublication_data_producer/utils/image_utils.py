@@ -11,10 +11,10 @@ from rasterio.plot import show
 from sentinelhub import BBox
 from shapely.geometry import Polygon
 
-from utils.file_io import save_geotiff
-from utils.job_utils import get_stitched_array_path
-from utils.logging_utils import log_step, log_success
-from utils.plotting import plot_image
+from .file_io import save_geotiff
+from .job_utils import get_stitched_array_path
+from .logging_utils import log_step, log_success
+from .plotting import plot_image
 
 
 def stitch_tiles(

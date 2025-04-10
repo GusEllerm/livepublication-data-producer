@@ -3,8 +3,7 @@ from datetime import date, timedelta
 
 from dateutil.relativedelta import relativedelta
 
-from utils.job_utils import generate_job_id
-
+from .job_utils import generate_job_id
 
 def generate_time_intervals(
         profile

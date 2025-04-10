@@ -2,7 +2,6 @@
 
 import sys
 
-
 def log_step(message: str):
     print(f"🔹 {message}")
 

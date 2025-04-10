@@ -18,8 +18,8 @@ from sentinelhub import (
 from shapely.geometry import box, shape
 from shapely.ops import transform, unary_union
 
-from utils.job_utils import get_orbit_metadata_path, get_tile_prefix
-from utils.logging_utils import log_inline, log_step, log_success, log_warning
+from .job_utils import get_orbit_metadata_path, get_tile_prefix
+from .logging_utils import log_inline, log_step, log_success, log_warning
 
 
 def compute_orbit_bbox(orbit: dict) -> box:

@@ -5,7 +5,7 @@ import numpy as np
 import rasterio
 from rasterio.transform import from_bounds
 
-from utils.logging_utils import log_warning
+from .logging_utils import log_warning
 
 
 def save_geotiff(array, output_path, bbox, crs, dtype=np.float32):

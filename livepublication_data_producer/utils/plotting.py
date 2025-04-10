@@ -10,7 +10,7 @@ import rasterio
 from rasterio.plot import show
 from shapely.geometry import box
 
-from utils.logging_utils import log_success, log_warning
+from .logging_utils import log_success, log_warning
 
 
 def plot_image(
