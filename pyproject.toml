@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "livepublication-data-producer"
+version = "0.1.0"
+description = "A data retrieval pipeline for Sentinel-2 imagery with orbit-based provenance"
+authors = [{ name = "Gus Ellerm", email = "aell854@UoA.auckland.ac.nz" }]
+readme = "README.md"
+requires-python = ">=3.12"
