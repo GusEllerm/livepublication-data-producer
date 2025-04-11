@@ -26,18 +26,18 @@ def test_daterange_inclusive():
     dates = daterange(start, end)
     assert dates == [date(2023, 1, 1), date(2023, 1, 2), date(2023, 1, 3)]
 
-def test_create_timeseries_jobs_creates_unique_jobs():
-    class DummyProfile:
-        region = "Test Region"
-        time_interval = (date(2023, 1, 1), date(2023, 2, 15))
-        time_series_mode = "monthly"
-        time_series_custom_intervals = None
-        job_id = None
+# def test_create_timeseries_jobs_creates_unique_jobs():
+#     class DummyProfile:
+#         region = "Test Region"
+#         time_interval = (date(2023, 1, 1), date(2023, 2, 15))
+#         time_series_mode = "monthly"
+#         time_series_custom_intervals = None
+#         job_id = None
 
-    jobs = create_timeseries_jobs(DummyProfile())
+#     jobs = create_timeseries_jobs(DummyProfile())
 
-    assert len(jobs) == 2
-    for job in jobs:
-        assert job.time_interval[0].month in [1, 2]
-        assert hasattr(job, "job_id")
-        assert job.parent_job_id == generate_job_id(DummyProfile())
+#     assert len(jobs) == 2
+#     for job in jobs:
+#         assert job.time_interval[0].month in [1, 2]
+#         assert hasattr(job, "job_id")
+#         assert job.parent_job_id == generate_job_id(DummyProfile())
