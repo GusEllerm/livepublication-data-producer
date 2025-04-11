@@ -11,24 +11,25 @@ from profiles import (
     three_years_quarterly,
     white_island_eruption,
 )
-from utils import generate_time_intervals
-from utils.file_io import remove_output_dir
-from utils.image_utils import (
+
+from .utils import generate_time_intervals
+from .utils.file_io import remove_output_dir
+from .utils.image_utils import (
     generate_ndvi_products,
     generate_true_color_products,
     stitch_raw_tile_data,
 )
-from utils.job_utils import prepare_job_output_dirs
-from utils.logging_utils import log_warning
-from utils.metadata_utils import (
+from .utils.job_utils import prepare_job_output_dirs
+from .utils.logging_utils import log_warning
+from .utils.metadata_utils import (
     discover_metadata_for_tiles,
     discover_orbit_data_metadata,
     has_valid_orbits,
     select_orbits_for_tiles,
 )
-from utils.plotting import plot_tile_product_overlay
-from utils.tile_utils import download_orbits_for_tiles, generate_safe_tiles
-from utils.time_interval_utils import create_timeseries_jobs
+from .utils.plotting import plot_tile_product_overlay
+from .utils.tile_utils import download_orbits_for_tiles, generate_safe_tiles
+from .utils.time_interval_utils import create_timeseries_jobs
 
 profile = australian_bushfires
 start_date, end_date = profile.time_interval

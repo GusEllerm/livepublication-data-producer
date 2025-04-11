@@ -13,7 +13,7 @@ from shapely.geometry import Polygon
 
 from .file_io import save_geotiff
 from .job_utils import get_stitched_array_path
-from .logging_utils import log_step, log_success
+from .logging_utils import log_step, log_success, log_warning
 from .plotting import plot_image
 
 
@@ -126,7 +126,6 @@ def stitch_raw_tile_data(
     Returns:
         np.ndarray: The stitched image array.
     """
-    from utils.logging_utils import log_warning
     try:
         if not tile_info:
             raise ValueError("No tiles available to stitch or process.")
@@ -159,7 +158,6 @@ def generate_ndvi_products(
         stitched_image (np.ndarray): Stitched satellite image.
     """
     if stitched_image is None or tile_info is None or len(tile_info) == 0:
-        from utils.logging_utils import log_warning
         log_warning("⚠️ Skipping NDVI generation: no stitched image or tile info provided.")
         return
     log_step("🧪 Generating NDVI imagery...")
@@ -194,7 +192,6 @@ def generate_true_color_products(
         stitched_image (np.ndarray): Stitched satellite image.
     """
     if stitched_image is None or tile_info is None or len(tile_info) == 0:
-        from utils.logging_utils import log_warning
         log_warning("⚠️ Skipping true-color generation: no stitched image or tile info provided.")
         return
     log_step("🎨 Generating true-color imagery...")

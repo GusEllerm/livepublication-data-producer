@@ -141,7 +141,7 @@ def download_orbits_for_tiles(
         tuple: (tile_info, failed_tiles)
     """
     if isinstance(tiles[0], tuple):
-        from utils.tile_utils import convert_tiles_to_bboxes
+        from .tile_utils import convert_tiles_to_bboxes
         tiles = convert_tiles_to_bboxes(tiles)
 
     tile_info_all = []

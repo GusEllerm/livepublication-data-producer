@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 
 from .job_utils import generate_job_id
+from .logging_utils import log_warning
 
 
 def generate_time_intervals(
@@ -81,12 +82,10 @@ def create_timeseries_jobs(
     from profiles import (
         DataAcquisitionConfig,  # Local import to avoid circular dependency
     )
-    from utils.job_utils import generate_job_id
 
     # Ensure the parent profile has a job_id
     if not getattr(profile, "job_id", None):
         profile.job_id = generate_job_id(profile)
-        from utils.logging_utils import log_warning
         log_warning("⚠️  Parent profile was missing a job_id — generated one automatically.")
 
     time_intervals = generate_time_intervals(profile)

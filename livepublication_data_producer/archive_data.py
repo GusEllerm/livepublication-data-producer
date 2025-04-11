@@ -1,6 +1,6 @@
 import argparse
 
-from utils.job_utils import archive_job_outputs
+from .utils.job_utils import archive_job_outputs
 
 parser = argparse.ArgumentParser(
     description="Compress the current output directory into a ZIP archive stored in archive/."
