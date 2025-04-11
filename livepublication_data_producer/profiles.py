@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import List, Optional, Tuple
 
-from utils.job_utils import generate_job_id
+from .utils.job_utils import generate_job_id
 
 
 @dataclass
